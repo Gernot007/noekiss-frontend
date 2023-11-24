@@ -7,6 +7,7 @@ import {
 } from 'vue-router';
 
 import routes from './routes';
+import { supabase } from '../supabase';
 
 /*
  * If not building with SSR mode, you can
@@ -32,6 +33,29 @@ export default route(function (/* { store, ssrContext } */) {
     // quasar.conf.js -> build -> vueRouterMode
     // quasar.conf.js -> build -> publicPath
     history: createHistory(process.env.VUE_ROUTER_BASE),
+  });
+
+  Router.beforeEach(async (to, from, next) => {
+    // redirect to login page if not logged in and trying to access a restricted page
+    const { authorize } = to.meta as any;
+    const { data, error } = await supabase.auth.getSession();
+
+    if (error) throw error;
+
+    if (authorize) {
+      if (error || !data || !data?.session) {
+        // not logged in so redirect to login page with the return url
+        return next({ path: '/login', query: { returnUrl: to.path } });
+      }
+
+      // check if route is restricted by role
+      if (authorize?.length) {
+        // role not authorised so redirect to home page
+        return next({ path: '/' });
+      }
+    }
+
+    next();
   });
 
   return Router;

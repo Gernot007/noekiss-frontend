@@ -1,28 +1,26 @@
 <script setup>
 // import Avatar from '../components/Avatar.vue';
 import { supabase } from '../supabase';
-import { onMounted, ref, toRefs } from 'vue';
+import { onBeforeMount, onMounted, ref } from 'vue';
 
-const props = defineProps(['session']);
-const { session } = toRefs(props);
-
+let user;
 const loading = ref(true);
 const username = ref('');
 const website = ref('');
 const avatar_url = ref('');
 
-onMounted(() => {
-  getProfile();
-});
+async function getUser() {
+  const { data, error } = await supabase.auth.getSession();
+  user = data.session.user;
+}
 
 async function getProfile() {
   try {
     loading.value = true;
-    const { user } = session.value;
 
     const { data, error, status } = await supabase
       .from('profiles')
-      .select('username, website, avatar_url')
+      .select('*')
       .eq('id', user.id)
       .single();
 
@@ -43,10 +41,9 @@ async function getProfile() {
 async function updateProfile() {
   try {
     loading.value = true;
-    const { user } = session.value;
 
     const updates = {
-      id: user.id,
+      id: user?.id,
       username: username.value,
       website: website.value,
       avatar_url: avatar_url.value,
@@ -74,41 +71,52 @@ async function signOut() {
     loading.value = false;
   }
 }
+
+onBeforeMount(() => {
+  getUser();
+});
+
+onMounted(() => {
+  getProfile();
+});
 </script>
 
+<script onMounted></script>
+
 <template>
-  <form class="form-widget" @submit.prevent="updateProfile">
-    <div>
-      <label for="email">Email</label>
-      <input id="email" type="text" :value="session.user.email" disabled />
-    </div>
-    <div>
-      <label for="username">Name</label>
-      <input id="username" type="text" v-model="username" />
-    </div>
-    <div>
-      <label for="website">Website</label>
-      <input id="website" type="url" v-model="website" />
-    </div>
+  <q-page>
     <form class="form-widget" @submit.prevent="updateProfile">
-      <!-- Add to body -->
-      <!-- <Avatar v-model:path="avatar_url" @upload="updateProfile" size="10" /> -->
+      <div>
+        <label for="email">Email</label>
+      </div>
+      <div>
+        <label for="username">Name</label>
+        <input id="username" type="text" v-model="username" />
+      </div>
+      <div>
+        <label for="website">Website</label>
+        <input id="website" type="url" v-model="website" />
+      </div>
+      <form class="form-widget" @submit.prevent="updateProfile">
+        <!-- Add to body -->
+        <!-- <Avatar v-model:path="avatar_url" @upload="updateProfile" size="10" /> -->
 
-      <!-- Other form elements -->
+        <!-- Other form elements -->
+      </form>
+      <div>
+        <input
+          type="submit"
+          class="button primary block"
+          :value="loading ? 'Loading ...' : 'Update'"
+          :disabled="loading"
+        />
+      </div>
+
+      <div>
+        <button class="button block" @click="signOut" :disabled="loading">
+          Sign Out
+        </button>
+      </div>
     </form>
-    <div>
-      <input
-        type="submit"
-        class="button primary block"
-        :value="loading ? 'Loading ...' : 'Update'"
-        :disabled="loading"
-      />
-    </div>
-
-    <div>
-      <button class="button block" @click="signOut" :disabled="loading">
-        Sign Out
-      </button>
-    </div>
-  </form>
+  </q-page>
 </template>

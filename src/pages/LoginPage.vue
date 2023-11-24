@@ -69,43 +69,36 @@
   </q-page>
 </template>
 
-<script>
+<script setup>
 import { supabase } from '../supabase';
 import { ref } from 'vue';
+import { useRouter } from 'vue-router';
 
-export default {
-  setup() {
-    return {
-      loading: ref(false),
-      email: ref(''),
-      password: ref(''),
-    };
-  },
-  methods: {
-    async signInWithEmail() {
-      try {
-        this.loading = true;
+const loading = ref(false);
+const email = ref('');
+const password = ref('');
+const router = useRouter();
 
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email: this.email,
-          password: this.password,
-        });
+async function signInWithEmail() {
+  try {
+    loading.value = true;
 
-        if (error) {
-          throw error;
-        }
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: email.value,
+      password: password.value,
+    });
 
-        this.$router.push('/');
-      } catch (error) {
-        if (error instanceof Error) {
-          alert(error.message);
-        }
-      } finally {
-        this.loading = false;
-      }
-    },
-  },
-};
+    if (error) throw Error;
+
+    router.push('/');
+  } catch (error) {
+    if (error instanceof Error) {
+      alert(error.message);
+    }
+  } finally {
+    loading.value = false;
+  }
+}
 </script>
 
 <style></style>

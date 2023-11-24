@@ -1,41 +1,34 @@
-<script>
+<script setup>
 import { supabase } from '../supabase';
 import { ref } from 'vue';
 
-export default {
-  setup() {
-    return {
-      loading: ref(false),
-      email: ref(''),
-      password: ref(''),
-    };
-  },
-  methods: {
-    async signUpNewUser() {
-      try {
-        const { data, error } = await supabase.auth.signUp({
-          email: email.value,
-          password: password.value,
-          options: {
-            emailRedirectTo: '',
-          },
-        });
+const loading = ref(false);
+const email = ref('');
+const password = ref('');
 
-        if (error) {
-          throw error;
-        }
+async function signUpNewUser() {
+  try {
+    const { data, error } = await supabase.auth.signUp({
+      email: email.value,
+      password: password.value,
+      options: {
+        emailRedirectTo: '',
+      },
+    });
 
-        alert('Check your email for the login link!');
-      } catch (error) {
-        if (error instanceof Error) {
-          alert(error.message);
-        }
-      } finally {
-        loading.value = false;
-      }
-    },
-  },
-};
+    if (error) {
+      throw error;
+    }
+
+    alert('Check your email for the login link!');
+  } catch (error) {
+    if (error instanceof Error) {
+      alert(error.message);
+    }
+  } finally {
+    loading.value = false;
+  }
+}
 </script>
 
 <template>

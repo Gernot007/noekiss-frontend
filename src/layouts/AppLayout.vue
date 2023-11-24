@@ -1,6 +1,6 @@
 <template>
-  <q-layout view="lHh Lpr lFf" class="bg-grey-9 text-white">
-    <q-header elevated class="bg-grey-6">
+  <q-layout view="lHh Lpr lFf" class="bg-grey-3 text-white">
+    <q-header elevated class="bg-primary">
       <q-toolbar>
         <q-btn
           flat
@@ -11,25 +11,28 @@
           icon="menu"
         />
 
-        <q-toolbar-title> Quasar App </q-toolbar-title>
+        <q-toolbar-title> NÖKISS </q-toolbar-title>
+
+        <q-btn flat round dense icon="whatshot" />
+        <q-btn flat round dense icon="" @click="logout">Logout</q-btn>
       </q-toolbar>
     </q-header>
 
-    <q-drawer v-model="leftDrawerOpen" show-if-above class="bg-grey-8">
+    <q-drawer v-model="leftDrawerOpen" show-if-above class="bg-primary">
       <q-list dark>
-        <q-item-label header>Essential Links</q-item-label>
+        <q-item-label header>Kategorien</q-item-label>
         <q-item
           clickable
           target="_blank"
           rel="noopener"
-          href="https://quasar.dev"
+          @click="this.$router.push('/shops')"
         >
           <q-item-section avatar>
             <q-icon name="school" />
           </q-item-section>
           <q-item-section>
-            <q-item-label>Docs</q-item-label>
-            <q-item-label caption>https://quasar.dev</q-item-label>
+            <q-item-label>Werkstätten</q-item-label>
+            <q-item-label caption>Übersicht der Werkstätten</q-item-label>
           </q-item-section>
         </q-item>
         <q-item
@@ -113,20 +116,38 @@
 
 <script>
 import { ref } from 'vue';
+import { useRouter } from 'vue-router';
+import { supabase } from '../supabase';
 
 export default {
   name: 'MyLayout',
 
   setup() {
+    const router = useRouter();
+    const loading = ref(false);
     const leftDrawerOpen = ref(false);
 
     function toggleLeftDrawer() {
       leftDrawerOpen.value = !leftDrawerOpen.value;
     }
 
+    async function logout() {
+      try {
+        loading.value = true;
+        const { error } = await supabase.auth.signOut();
+        if (error) throw error;
+        router.push('/');
+      } catch (error) {
+        alert(error.message);
+      } finally {
+        loading.value = false;
+      }
+    }
+
     return {
       leftDrawerOpen,
       toggleLeftDrawer,
+      logout,
     };
   },
 };

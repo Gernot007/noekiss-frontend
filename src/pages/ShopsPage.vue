@@ -3,25 +3,13 @@
     <div class="q-pa-sm q-gutter-sm">
       <q-table
         title="Werkstätten"
-        :rows="data"
+        :rows="shops"
         :columns="columns"
         row-key="name"
         binary-state-sort
         class="styled-table"
-        @row-dblclick="this.$router.push('/shop')"
       >
         <template v-slot:top>
-          <div class="col-3">
-            <q-btn
-              flat
-              outline
-              dense
-              color="primary"
-              label="Werkstatt hinzufügen"
-              @click="show_dialog = true"
-            ></q-btn>
-          </div>
-
           <div class="q-pa-sm q-gutter-sm">
             <q-dialog v-model="show_dialog">
               <q-card class="my-card" flat bordered>
@@ -47,7 +35,7 @@
                     label="OK"
                     color="primary"
                     v-close-popup
-                    @click="addRow"
+                    @click="onAddRow"
                   ></q-btn>
                 </q-card-actions>
               </q-card>
@@ -69,16 +57,26 @@
             <q-td key="actions" :props="props">
               <div class="q-pa-md q-gutter-sm">
                 <q-btn
+                  color="blue"
+                  icon="fa-solid fa-eye"
+                  @click="viewItem(props.row)"
+                  size="sm"
+                ></q-btn>
+                <q-btn
                   color="secondary"
-                  icon="fa-solid fa-plus"
-                  @click="editItem(props.row)"
+                  icon="fa-solid fa-edit"
+                  @click="onUpdateShop(props.row)"
                   size="sm"
                   spread="true"
                 ></q-btn>
                 <q-btn
                   color="red"
                   icon="fa-solid fa-trash"
-                  @click="deleteItem(props.row)"
+                  @click="
+                    deleteShop(
+                      shops.find((shop) => shop.id === props.row.id).id
+                    )
+                  "
                   size="sm"
                 ></q-btn>
               </div>
@@ -86,18 +84,45 @@
           </q-tr>
         </template>
       </q-table>
+      <div class="col-3">
+        <q-btn
+          flat
+          outline
+          dense
+          color="primary"
+          label="Werkstatt hinzufügen"
+          @click="show_dialog = true"
+        ></q-btn>
+      </div>
     </div>
   </div>
 </template>
-
+<!--
 <script>
 import { supabase } from '../supabase';
-import { defineComponent } from 'vue';
+import { defineComponent, onMounted } from 'vue';
+import { storeToRefs } from 'pinia';
+import { useShopsStore } from '../stores/auth';
+import { useRouter } from 'vue-router';
+
+const router = useRouter();
+
+const { loading, shops, shop, error } = storeToRefs(useShopsStore());
+
+const email = ref('');
+const password = ref('');
+
+const { getShops, deleteShop, updateShop } = useShopsStore();
+
+onMounted(() => {
+  getShops();
+});
 
 export default defineComponent({
   name: 'ShopsPage',
   data() {
     return {
+      selected: [],
       loading: true,
       show_dialog: false,
       editedIndex: -1,
@@ -115,6 +140,7 @@ export default defineComponent({
           label: 'Name',
           align: 'left',
           field: (row) => row.name,
+          sortable: true,
         },
         {
           name: 'managers',
@@ -130,7 +156,7 @@ export default defineComponent({
         },
         {
           name: 'actions',
-          label: 'Aktionen',
+          label: 'Actions',
           field: 'actions',
         },
       ],
@@ -163,7 +189,7 @@ export default defineComponent({
     async deleteItem(item) {
       const index = this.data.indexOf(item);
       if (confirm('Wollen Sie den Datensatz wirklich löschen?')) {
-        const res = await supabase.from('shops').delete().eq('id', item.id);
+        await deleteShop(item.id);
 
         if (res.status < 300) {
           this.data.splice(index, 1);
@@ -194,8 +220,78 @@ export default defineComponent({
     this.getShops();
   },
 });
-</script>
+</script> -->
 
+<script setup>
+import { defineComponent, onMounted, ref } from 'vue';
+import { storeToRefs } from 'pinia';
+import { useShopStore } from '../stores/shops';
+import { useRouter } from 'vue-router';
+
+const router = useRouter();
+
+const { loading, shops, shop, error } = storeToRefs(useShopStore());
+const { getShops, deleteShop, updateShop, createShop } = useShopStore();
+
+const selected = ref([]);
+const data = ref([]);
+const show_dialog = ref(false);
+const editedId = ref(-1);
+const editedItem = ref({});
+const columns = [
+  {
+    name: 'name',
+    label: 'Name',
+    align: 'left',
+    field: (row) => row.name,
+    sortable: true,
+  },
+  {
+    name: 'managers',
+    label: 'Haupthelfer',
+    align: 'left',
+    field: (row) => row.managers,
+  },
+  {
+    name: 'description',
+    label: 'Beschreibung',
+    align: 'left',
+    field: (row) => row.description,
+  },
+  {
+    name: 'actions',
+    label: 'Actions',
+    field: 'actions',
+  },
+];
+
+async function onAddRow() {
+  if (editedId.value > -1) {
+    await updateShop(editedId.value, editedItem.value);
+  } else {
+    await createShop(editedItem.value);
+  }
+  close();
+}
+
+function onUpdateShop(item) {
+  loading.value = true;
+  show_dialog.value = true;
+  editedItem.value = Object.assign({}, item);
+  editedId.value = item.id;
+}
+
+function close() {
+  editedId.value = -1;
+  editedItem.value = {};
+  show_dialog.value = false;
+  loading.value = false;
+}
+
+onMounted(() => {
+  getShops();
+});
+</script>
 <style lang="sass" scoped>
 .my-card
   width: 100%

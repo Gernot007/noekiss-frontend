@@ -57,7 +57,7 @@
               color="purple-4"
               class="full-width text-white"
               label="Login"
-              @click="signInWithEmail"
+              @click="signInWithPassword(email, password, router)"
             />
           </q-card-actions>
           <q-card-section class="text-center q-pa-sm">
@@ -70,35 +70,19 @@
 </template>
 
 <script setup>
-import { supabase } from '../supabase';
 import { ref } from 'vue';
+import { storeToRefs } from 'pinia';
+import { useAuthStore } from '../stores/auth';
 import { useRouter } from 'vue-router';
 
-const loading = ref(false);
-const email = ref('');
-const password = ref('');
 const router = useRouter();
 
-async function signInWithEmail() {
-  try {
-    loading.value = true;
+const { loading } = storeToRefs(useAuthStore());
 
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email: email.value,
-      password: password.value,
-    });
+const email = ref('');
+const password = ref('');
 
-    if (error) throw Error;
-
-    router.push('/');
-  } catch (error) {
-    if (error instanceof Error) {
-      alert(error.message);
-    }
-  } finally {
-    loading.value = false;
-  }
-}
+const { signInWithPassword } = useAuthStore();
 </script>
 
 <style></style>

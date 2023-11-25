@@ -1,27 +1,32 @@
 <script setup>
 // import Avatar from '../components/Avatar.vue';
 import { supabase } from '../supabase';
-import { onBeforeMount, onMounted, ref } from 'vue';
+import { onBeforeMount, nextTick, ref, onMounted } from 'vue';
+import { storeToRefs } from 'pinia';
+import { useAuthStore } from '../stores/auth';
 
-let user;
-const loading = ref(true);
+const { session, loading, error, getUser } = storeToRefs(useAuthStore());
+
+onMounted(() => {
+  getProfile();
+});
+
+const user = ref(getUser);
 const username = ref('');
 const website = ref('');
 const avatar_url = ref('');
 
-async function getUser() {
-  const { data, error } = await supabase.auth.getSession();
-  user = data.session.user;
-}
-
 async function getProfile() {
   try {
+    console.log('before next tick');
+    await nextTick();
+    console.log('after next tick');
     loading.value = true;
 
     const { data, error, status } = await supabase
       .from('profiles')
       .select('*')
-      .eq('id', user.id)
+      .eq('id', user.value.id)
       .single();
 
     if (error && status !== 406) throw error;
@@ -43,7 +48,7 @@ async function updateProfile() {
     loading.value = true;
 
     const updates = {
-      id: user?.id,
+      id: user?.value?.id,
       username: username.value,
       website: website.value,
       avatar_url: avatar_url.value,
@@ -71,14 +76,6 @@ async function signOut() {
     loading.value = false;
   }
 }
-
-onBeforeMount(() => {
-  getUser();
-});
-
-onMounted(() => {
-  getProfile();
-});
 </script>
 
 <script onMounted></script>

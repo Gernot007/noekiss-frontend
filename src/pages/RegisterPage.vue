@@ -1,34 +1,17 @@
 <script setup>
-import { supabase } from '../supabase';
 import { ref } from 'vue';
+import { storeToRefs } from 'pinia';
+import { useAuthStore } from '../stores/auth';
+import { useRouter } from 'vue-router';
 
-const loading = ref(false);
+const router = useRouter();
+
+const { loading } = storeToRefs(useAuthStore());
+
 const email = ref('');
 const password = ref('');
 
-async function signUpNewUser() {
-  try {
-    const { data, error } = await supabase.auth.signUp({
-      email: email.value,
-      password: password.value,
-      options: {
-        emailRedirectTo: '',
-      },
-    });
-
-    if (error) {
-      throw error;
-    }
-
-    alert('Check your email for the login link!');
-  } catch (error) {
-    if (error instanceof Error) {
-      alert(error.message);
-    }
-  } finally {
-    loading.value = false;
-  }
-}
+const { signUpNewUser } = useAuthStore();
 </script>
 
 <template>
@@ -81,7 +64,7 @@ async function signUpNewUser() {
               color="purple-4"
               class="full-width text-white"
               label="Bestätigen"
-              @click="signUpNewUser"
+              @click="signUpNewUser(email, password, router)"
             />
           </q-card-actions>
           <q-card-section class="text-center q-pa-sm">

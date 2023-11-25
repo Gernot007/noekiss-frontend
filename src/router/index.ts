@@ -7,8 +7,7 @@ import {
 } from 'vue-router';
 
 import routes from './routes';
-import { storeToRefs } from 'pinia';
-import { useAuthStore } from '../stores/auth';
+import { supabase } from '../supabase';
 
 /*
  * If not building with SSR mode, you can
@@ -39,10 +38,12 @@ export default route(function (/* { store, ssrContext } */) {
   Router.beforeEach(async (to, from, next) => {
     // redirect to login page if not logged in and trying to access a restricted page
     const { authorize } = to.meta as any;
-    const { getUser } = storeToRefs(useAuthStore());
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     if (authorize) {
-      if (!getUser) {
+      if (!user) {
         // not logged in so redirect to login page with the return url
         return next({ path: '/login', query: { returnUrl: to.path } });
       }

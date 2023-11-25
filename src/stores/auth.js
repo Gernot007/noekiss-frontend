@@ -4,16 +4,29 @@ import { supabase } from '../supabase';
 export const useAuthStore = defineStore({
   id: 'auth',
   state: () => ({
+    user: null,
     session: null,
     loading: false,
     error: null,
   }),
   getters: {
     getUser: (state) => {
-      return state.session?.user;
+      return state.user;
     },
   },
   actions: {
+    async getUser() {
+      this.loading = true;
+      try {
+        const { user, error } = await supabase.auth.getUser();
+        if (error) throw error;
+        this.user = user;
+      } catch (error) {
+        this.error = error;
+      } finally {
+        this.loading = false;
+      }
+    },
     async getSession() {
       console.log('Got session');
       this.loading = true;

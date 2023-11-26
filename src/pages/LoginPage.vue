@@ -71,18 +71,14 @@
 
 <script setup>
 import { ref } from 'vue';
-import { storeToRefs } from 'pinia';
-import { useAuthStore } from '../stores/auth';
+import { signInWithPassword } from '../services/auth.service';
 import { useRouter } from 'vue-router';
 
 const router = useRouter();
 
-const { loading } = storeToRefs(useAuthStore());
-
+const loading = ref(false);
 const email = ref('');
 const password = ref('');
-
-const { signInWithPassword } = useAuthStore();
 </script>
 
 <style></style>

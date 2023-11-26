@@ -2,16 +2,13 @@
 // import Avatar from '../components/Avatar.vue';
 import { supabase } from '../supabase';
 import { onBeforeMount, nextTick, ref, onMounted } from 'vue';
-import { storeToRefs } from 'pinia';
-import { useAuthStore } from '../stores/auth';
-
-const { session, loading, error, getUser } = storeToRefs(useAuthStore());
+import { getCurrentUser } from '../services/auth.service';
 
 onMounted(() => {
   getProfile();
 });
 
-const user = ref(getUser);
+const user = ref(getCurrentUser());
 const username = ref('');
 const website = ref('');
 const avatar_url = ref('');

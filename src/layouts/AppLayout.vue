@@ -1,8 +1,7 @@
 <script>
 import { ref } from 'vue';
-import { storeToRefs } from 'pinia';
-import { useAuthStore } from '../stores/auth';
 import { useRouter } from 'vue-router';
+import { logout } from '../services/auth.service';
 
 export default {
   name: 'MyLayout',
@@ -10,18 +9,13 @@ export default {
   setup() {
     const router = useRouter();
 
-    const { loading } = storeToRefs(useAuthStore());
-
     const leftDrawerOpen = ref(false);
 
     function toggleLeftDrawer() {
       leftDrawerOpen.value = !leftDrawerOpen.value;
     }
 
-    const { logout } = useAuthStore();
-
     return {
-      loading,
       router,
       leftDrawerOpen,
       toggleLeftDrawer,

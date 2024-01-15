@@ -1,5 +1,5 @@
 <template>
   <q-page>
-    <div>TEST</div>
+    <div></div>
   </q-page>
 </template>

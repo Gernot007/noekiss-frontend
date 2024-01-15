@@ -46,7 +46,10 @@ export default route(function (/* { store, ssrContext } */) {
       }
 
       // check if route is restricted by role
-      if (authorize?.length) {
+      if (
+        authorize?.length &&
+        !authorize.includes(currentUser?.user_metadata?.role)
+      ) {
         // role not authorised so redirect to home page
         return next({ path: '/' });
       }

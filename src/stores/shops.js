@@ -12,33 +12,60 @@ export const useShopStore = defineStore({
   }),
   getters: {
     getShopsPerUser: (state) => {
-      return (userId) => state.shops.find((manager) => manager.id === userId);
+      return (userId) => state.shops.find((manager) => manager.id == userId);
+    },
+    getShop: (state) => {
+      return (id) => state.shops.find((shop) => shop.id == id);
     },
   },
   actions: {
-    async getShops() {
+    async fetchShops() {
       this.shops = [];
       this.loading = true;
       try {
-        const { data, error } = await supabase.from('shops').select();
-        if (error) throw error;
-        this.shops = data;
+        const shopsRes = await supabase.from('shops').select(`
+        *,
+        areas (
+          *,
+          timeslots (
+            *,
+            assignees (
+              *
+            )
+          )
+        )
+      `);
+        if (shopsRes.error) throw shopsRes.error;
+        this.shops = shopsRes.data;
       } catch (error) {
         this.error = error;
       } finally {
         this.loading = false;
       }
     },
-    async getShop(id) {
+    async fetchShop(id) {
       this.shop = null;
       this.loading = true;
       try {
         const { data, error } = await supabase
           .from('shops')
-          .select()
+          .select(
+            `
+          *,
+          areas (
+            *,
+            timeslots (
+              *,
+              assignees (
+                *
+              )
+            )
+          )
+        `
+          )
           .eq('id', id);
         if (error) throw error;
-        this.shop = data;
+        this.shop = data[0];
       } catch (error) {
         this.error = error;
       } finally {

@@ -3,45 +3,13 @@
     <div class="q-pa-sm q-gutter-sm">
       <q-table
         title="Werkstätten"
-        :rows="shops"
-        :columns="columns"
+        :rows="state.shops"
+        :columns="state.columns"
         row-key="name"
         binary-state-sort
         class="styled-table"
       >
-        <template v-slot:top>
-          <div class="q-pa-sm q-gutter-sm">
-            <q-dialog v-model="show_dialog">
-              <q-card class="my-card" flat bordered>
-                <q-card-section>
-                  <div class="text-h6">Werkstatt hinzufügen</div>
-                </q-card-section>
-
-                <q-card-section>
-                  <div class="row">
-                    <q-input v-model="editedItem.name" label="Name"></q-input>
-                    <q-input
-                      v-model="editedItem.description"
-                      label="Beschreibung"
-                    ></q-input>
-                    <q-input v-model="editedItem.manager" label="Haupthelfer">
-                    </q-input>
-                  </div>
-                </q-card-section>
-
-                <q-card-actions align="center">
-                  <q-btn label="Schließen" size="l" @click="close"></q-btn>
-                  <q-btn
-                    label="OK"
-                    color="primary"
-                    v-close-popup
-                    @click="onAddRow"
-                  ></q-btn>
-                </q-card-actions>
-              </q-card>
-            </q-dialog>
-          </div>
-        </template>
+        <template v-slot:top> </template>
 
         <template v-slot:body="props">
           <q-tr :props="props">
@@ -59,7 +27,12 @@
                 <q-btn
                   color="blue"
                   icon="fa-solid fa-eye"
-                  @click="viewItem(props.row)"
+                  @click="
+                    this.$router.push(
+                      '/shops/' +
+                        state.shops.find((shop) => shop.id === props.row.id).id
+                    )
+                  "
                   size="sm"
                 ></q-btn>
                 <q-btn
@@ -74,7 +47,7 @@
                   icon="fa-solid fa-trash"
                   @click="
                     deleteShop(
-                      shops.find((shop) => shop.id === props.row.id).id
+                      state.shops.find((shop) => shop.id === props.row.id).id
                     )
                   "
                   size="sm"
@@ -96,200 +69,188 @@
       </div>
     </div>
   </div>
+
+  <div class="q-pa-md q-gutter-sm">
+    <q-dialog v-model="state.show_dialog">
+      <q-card style="width: 1200px; max-width: 80vw">
+        <q-card-section>
+          <div class="text-h6">Werkstatt</div>
+        </q-card-section>
+
+        <q-card-section>
+          <div class="row">
+            <div class="q-pa-md row items-start q-gutter-md">
+              <q-input v-model="state.editedItem.name" label="Name"></q-input>
+              <q-input
+                v-model="state.editedItem.description"
+                label="Beschreibung"
+              ></q-input>
+            </div>
+          </div>
+        </q-card-section>
+        <q-card-section>
+          <q-table
+            flat
+            bordered
+            title="Haupthelfer"
+            :rows="state.haupthelfer"
+            :columns="[
+              {
+                name: 'firstname',
+                required: true,
+                label: 'Vorname',
+                align: 'center',
+                field: (row) => row.firstname,
+                format: (val) => `${val}`,
+                sortable: true,
+              },
+              {
+                name: 'lastname',
+                required: true,
+                label: 'Nachname',
+                align: 'center',
+                field: (row) => row.lastname,
+                format: (val) => `${val}`,
+                sortable: true,
+              },
+              {
+                name: 'birthday',
+                required: true,
+                label: 'Geburtsdatum',
+                align: 'center',
+                field: (row) => row.birthday,
+                format: (val) => `${val}`,
+                sortable: true,
+              },
+              {
+                name: 'tel',
+                required: true,
+                label: 'Tel',
+                align: 'center',
+                field: (row) => row.tel,
+                format: (val) => `${val}`,
+                sortable: true,
+              },
+              {
+                name: 'email',
+                required: true,
+                label: 'E-Mail',
+                align: 'center',
+                field: (row) => row.email,
+                format: (val) => `${val}`,
+                sortable: true,
+              },
+            ]"
+            row-key="name"
+            :selected-rows-label="getSelectedString"
+            selection="multiple"
+            v-model:selected="state.editedItem.manager"
+          />
+        </q-card-section>
+
+        <q-card-actions align="center">
+          <q-btn label="Schließen" size="l" @click="close"></q-btn>
+          <q-btn
+            label="OK"
+            color="primary"
+            v-close-popup
+            @click="onAddRow"
+          ></q-btn>
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+  </div>
 </template>
-<!--
-<script>
-import { supabase } from '../supabase';
-import { defineComponent, onMounted } from 'vue';
-import { storeToRefs } from 'pinia';
-import { useShopsStore } from '../stores/auth';
-import { useRouter } from 'vue-router';
-
-const router = useRouter();
-
-const { loading, shops, shop, error } = storeToRefs(useShopsStore());
-
-const email = ref('');
-const password = ref('');
-
-const { getShops, deleteShop, updateShop } = useShopsStore();
-
-onMounted(() => {
-  getShops();
-});
-
-export default defineComponent({
-  name: 'ShopsPage',
-  data() {
-    return {
-      selected: [],
-      loading: true,
-      show_dialog: false,
-      editedIndex: -1,
-      editedItem: {
-        name: '',
-        location: '',
-      },
-      defaultItem: {
-        name: '',
-        location: '',
-      },
-      columns: [
-        {
-          name: 'name',
-          label: 'Name',
-          align: 'left',
-          field: (row) => row.name,
-          sortable: true,
-        },
-        {
-          name: 'managers',
-          label: 'Haupthelfer',
-          align: 'left',
-          field: (row) => row.managers,
-        },
-        {
-          name: 'description',
-          label: 'Beschreibung',
-          align: 'left',
-          field: (row) => row.description,
-        },
-        {
-          name: 'actions',
-          label: 'Actions',
-          field: 'actions',
-        },
-      ],
-      data: [],
-    };
-  },
-  methods: {
-    async addRow() {
-      if (this.editedIndex > -1) {
-        // only updated
-        const res = await supabase
-          .from('shops')
-          .update(this.editedItem)
-          .eq('id', this.editedItem.id);
-        if (res.status < 300) {
-          this.data[this.editedIndex] = {
-            ...this.editedItem,
-          };
-        }
-      } else {
-        const res = await supabase.from('shops').insert(this.editedItem);
-        if (res.status < 300) {
-          this.data.push({
-            ...this.editedItem,
-          });
-        }
-      }
-      this.close();
-    },
-    async deleteItem(item) {
-      const index = this.data.indexOf(item);
-      if (confirm('Wollen Sie den Datensatz wirklich löschen?')) {
-        await deleteShop(item.id);
-
-        if (res.status < 300) {
-          this.data.splice(index, 1);
-        }
-      }
-    },
-    async editItem(item, show_dialog = true) {
-      this.loading = true;
-      this.editedItem = Object.assign({}, item);
-      this.editedIndex = this.data.indexOf(item);
-      this.show_dialog = show_dialog;
-    },
-    close() {
-      this.show_dialog = false;
-      setTimeout(() => {
-        this.editedItem = {};
-        this.editedIndex = -1;
-      }, 300);
-    },
-    async getShops() {
-      const res = await supabase.from('shops').select();
-      this.data = res.data.map((obj) => {
-        return { ...obj };
-      });
-    },
-  },
-  mounted() {
-    this.getShops();
-  },
-});
-</script> -->
 
 <script setup>
-import { defineComponent, onMounted, ref } from 'vue';
-import { storeToRefs } from 'pinia';
-import { useShopStore } from '../stores/shops';
-import { useRouter } from 'vue-router';
+import { onMounted, reactive, ref } from 'vue';
+import { databaseClient } from '../services/db.service';
 
-const router = useRouter();
-
-const { loading, shops, shop, error } = storeToRefs(useShopStore());
-const { getShops, deleteShop, updateShop, createShop } = useShopStore();
-
-const selected = ref([]);
-const data = ref([]);
-const show_dialog = ref(false);
-const editedId = ref(-1);
-const editedItem = ref({});
-const columns = [
-  {
-    name: 'name',
-    label: 'Name',
-    align: 'left',
-    field: (row) => row.name,
-    sortable: true,
-  },
-  {
-    name: 'managers',
-    label: 'Haupthelfer',
-    align: 'left',
-    field: (row) => row.managers,
-  },
-  {
-    name: 'description',
-    label: 'Beschreibung',
-    align: 'left',
-    field: (row) => row.description,
-  },
-  {
-    name: 'actions',
-    label: 'Actions',
-    field: 'actions',
-  },
-];
+const state = reactive({
+  loading: false,
+  shops: [],
+  selected: [],
+  data: [],
+  haupthelfer: [],
+  show_dialog: false,
+  editedId: -1,
+  editedItem: {},
+  columns: [
+    {
+      name: 'name',
+      label: 'Name',
+      align: 'left',
+      field: (row) => row.name,
+      sortable: true,
+    },
+    {
+      name: 'managers',
+      label: 'Haupthelfer',
+      align: 'left',
+      field: (row) => row.managers,
+    },
+    {
+      name: 'description',
+      label: 'Beschreibung',
+      align: 'left',
+      field: (row) => row.description,
+    },
+    {
+      name: 'actions',
+      label: 'Actions',
+      field: 'actions',
+    },
+  ],
+});
 
 async function onAddRow() {
-  if (editedId.value > -1) {
-    await updateShop(editedId.value, editedItem.value);
+  if (state.editedId > -1) {
+    await updateShop(state.editedId, state.editedItem);
   } else {
-    await createShop(editedItem.value);
+    await createShop(state.editedItem);
   }
   close();
 }
 
+async function updateShop(id, shop) {
+  const { data } = await databaseClient.updateShop(id, shop);
+  const index = state.shops.findIndex((shop) => shop.id === id);
+  const updatedItem = ref(state.shops[index]);
+  updatedItem.value = Object.assign(this.shops[index], data);
+  console.debug(`Successfully updated shop with id: '${id}'`);
+}
+
+async function createShop(shop) {
+  const { data } = await databaseClient.createShop(shop);
+  state.shops.push(data);
+  console.debug('Successfully created shop.');
+}
+
+async function deleteShop(id) {
+  await databaseClient.deleteShop(id);
+  state.shops.splice(
+    state.shops.findIndex((shop) => shop.id === id),
+    1
+  );
+}
+
 function onUpdateShop(item) {
-  loading.value = true;
-  show_dialog.value = true;
-  editedItem.value = Object.assign({}, item);
-  editedId.value = item.id;
+  state.loading = true;
+  state.show_dialog = true;
+  state.editedItem = Object.assign({}, item);
+  state.editedId = item.id;
 }
 
 function close() {
-  editedId.value = -1;
-  editedItem.value = {};
-  show_dialog.value = false;
-  loading.value = false;
+  state.editedId = -1;
+  state.editedItem = {};
+  state.show_dialog = false;
+  state.loading = false;
 }
 
-onMounted(() => {
-  getShops();
+onMounted(async () => {
+  state.shops = await databaseClient.fetchShops();
+  state.haupthelfer = await databaseClient.fetchEmployees(); // TODO: Filter for role=Haupthelfer
 });
 </script>
 <style lang="sass" scoped>

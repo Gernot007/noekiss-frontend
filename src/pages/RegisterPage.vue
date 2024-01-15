@@ -1,11 +1,17 @@
 <script setup>
-import { ref } from 'vue';
+import { reactive, ref } from 'vue';
 import { signUpNewUser } from '../services/auth.service';
 import { useRouter } from 'vue-router';
 
 const router = useRouter();
 
-const loading = ref(false);
+const meta = reactive({
+  firstname: '',
+  lastename: '',
+  birthday: '',
+  tel: '',
+});
+
 const email = ref('');
 const password = ref('');
 </script>
@@ -29,6 +35,50 @@ const password = ref('');
           </q-card-section>
           <q-card-section>
             <q-form class="q-px-sm q-pt-xl q-pb-lg">
+              <q-input
+                square
+                clearable
+                v-model="meta.firstname"
+                type="text"
+                label="Vorname"
+              >
+                <template v-slot:prepend>
+                  <q-icon name="person" />
+                </template>
+              </q-input>
+              <q-input
+                square
+                clearable
+                v-model="meta.lastname"
+                type="text"
+                label="Nachname"
+              >
+                <template v-slot:prepend>
+                  <q-icon name="person" />
+                </template>
+              </q-input>
+              <q-input
+                square
+                clearable
+                v-model="meta.birthday"
+                type="date"
+                label="Geburtsdatum"
+              >
+                <template v-slot:prepend>
+                  <q-icon name="date" />
+                </template>
+              </q-input>
+              <q-input
+                square
+                clearable
+                v-model="meta.tel"
+                type="telephone"
+                label="Mobilnummer"
+              >
+                <template v-slot:prepend>
+                  <q-icon name="tel" />
+                </template>
+              </q-input>
               <q-input
                 square
                 clearable
@@ -60,7 +110,7 @@ const password = ref('');
               color="purple-4"
               class="full-width text-white"
               label="Bestätigen"
-              @click="signUpNewUser(email, password, router)"
+              @click="signUpNewUser(email, password, router, meta)"
             />
           </q-card-actions>
           <q-card-section class="text-center q-pa-sm">

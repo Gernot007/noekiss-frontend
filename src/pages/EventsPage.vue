@@ -115,7 +115,7 @@
           outline
           dense
           color="primary"
-          label="Mitarbeiter hinzufügen"
+          label="Veranstaltung hinzufügen"
           @click="show_dialog = true"
         ></q-btn>
       </div>

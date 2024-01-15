@@ -74,98 +74,94 @@ function close() {
 </script>
 
 <template>
-  <div class="q-pa-md row items-start q-gutter-sm">
-    <q-card class="medium-width text-black">
-      <q-card-section class="bg-secondary text-white">
-        <div class="text-h6" style="text-align: center">
-          {{ props.timeslot.start_time.substring(0, 5) }} -
-          {{ props.timeslot.end_time.substring(0, 5) }}
-        </div>
-      </q-card-section>
+  <q-card class="q-pa-md">
+    <q-card-section class="bg-secondary text-white">
+      <div class="text-h6" style="text-align: center">
+        {{ props.timeslot.start_time.substring(0, 5) }} -
+        {{ props.timeslot.end_time.substring(0, 5) }}
+      </div>
+    </q-card-section>
 
-      <q-card-section>
-        <div class="q-pa-md text-h6" style="text-align: center">
-          Verantwortliche
-        </div>
-        <q-list bordered separator>
-          <q-item
-            v-for="manager in props.timeslot.manager_timeslot"
-            :key="manager.id"
-            v-ripple
-            clickable
-          >
-            <q-item-section>
-              <q-item-label>
-                {{ manager.employees.firstname }}
-                {{ manager.employees.lastname }}
-              </q-item-label>
-            </q-item-section>
-            <q-btn
-              flat
-              style="margin-left: 1em; color: rgb(115, 3, 3)"
-              icon="fa-solid fa-x"
-              @click="removeManagerFromTimeslot"
-            ></q-btn>
-          </q-item>
-        </q-list>
-        <q-card-actions align="center" style="color: rgb(1, 103, 1)">
+    <q-card-section>
+      <div class="q-pa-md text-h6" style="text-align: center">
+        Verantwortliche
+      </div>
+      <q-list bordered separator>
+        <q-item
+          v-for="manager in props.timeslot.manager_timeslot"
+          :key="manager.id"
+          v-ripple
+          clickable
+        >
+          <q-item-section>
+            <q-item-label>
+              {{ manager.employees.firstname }}
+              {{ manager.employees.lastname }}
+            </q-item-label>
+          </q-item-section>
           <q-btn
             flat
-            style="margin-left: 1em"
-            icon="fa-solid fa-plus"
-            @click="addManager"
+            style="margin-left: 1em; color: rgb(115, 3, 3)"
+            icon="fa-solid fa-x"
+            @click="removeManagerFromTimeslot"
           ></q-btn>
-        </q-card-actions>
-
-        <div class="q-pa-md text-h6" style="text-align: center">
-          Mitarbeiter
-        </div>
-        <q-list bordered separator>
-          <q-item
-            v-for="assigned in props.timeslot.assigned"
-            :key="assigned.id"
-            :value="assigned"
-            v-ripple
-            clickable
-            @click="show_user_info"
-          >
-            <q-item-section>
-              <q-item-label>
-                {{ assigned.employees.firstname }}
-                {{ assigned.employees.lastname }}
-              </q-item-label>
-            </q-item-section>
-            <q-btn
-              flat
-              style="margin-left: 1em; color: rgb(115, 3, 3)"
-              icon="fa-solid fa-x"
-              @click="removeAssigneeFromTimeslot(assigned)"
-            ></q-btn>
-          </q-item>
-        </q-list>
-        <q-card-actions align="center" style="color: rgb(1, 103, 1)">
-          <q-btn
-            flat
-            style="margin-left: 1em"
-            icon="fa-solid fa-plus"
-            @click="state.show_select_employee_dialog = true"
-          ></q-btn>
-        </q-card-actions>
-      </q-card-section>
-
-      <q-card-actions
-        align="center"
-        style="color: rgb(1, 103, 1); background-color: rgb(195, 77, 77)"
-      >
+        </q-item>
+      </q-list>
+      <q-card-actions align="center" style="color: rgb(1, 103, 1)">
         <q-btn
           flat
-          style="margin-left: 1em; color: gray"
-          icon="fa-solid fa-trash"
-          @click="deleteTimeslot"
+          style="margin-left: 1em"
+          icon="fa-solid fa-plus"
+          @click="addManager"
         ></q-btn>
       </q-card-actions>
-    </q-card>
-  </div>
+
+      <div class="q-pa-md text-h6" style="text-align: center">Mitarbeiter</div>
+      <q-list bordered separator>
+        <q-item
+          v-for="assigned in props.timeslot.assigned"
+          :key="assigned.id"
+          :value="assigned"
+          v-ripple
+          clickable
+          @click="show_user_info"
+        >
+          <q-item-section>
+            <q-item-label>
+              {{ assigned.employees.firstname }}
+              {{ assigned.employees.lastname }}
+            </q-item-label>
+          </q-item-section>
+          <q-btn
+            flat
+            style="margin-left: 1em; color: rgb(115, 3, 3)"
+            icon="fa-solid fa-x"
+            @click="removeAssigneeFromTimeslot(assigned)"
+          ></q-btn>
+        </q-item>
+      </q-list>
+      <q-card-actions align="center" style="color: rgb(1, 103, 1)">
+        <q-btn
+          flat
+          style="margin-left: 1em"
+          icon="fa-solid fa-plus"
+          @click="state.show_select_employee_dialog = true"
+        ></q-btn>
+      </q-card-actions>
+    </q-card-section>
+
+    <q-card-actions
+      align="center"
+      style="color: rgb(1, 103, 1); background-color: rgb(195, 77, 77)"
+    >
+      <q-btn
+        flat
+        style="margin-left: 1em; color: gray"
+        icon="fa-solid fa-trash"
+        @click="deleteTimeslot"
+      ></q-btn>
+    </q-card-actions>
+  </q-card>
 
   <q-dialog v-model="state.show_select_employee_dialog">
     <q-card style="width: 1200px; max-width: 80vw">

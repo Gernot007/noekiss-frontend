@@ -142,13 +142,12 @@ async function updateShop() {
       <div
         class="q-pa-md row items-start q-gutter-sm"
         style="
-          display: flex;
-          flex-direction: row;
-          margin-left: auto;
-          margin-right: auto;
-          align-items: stretch;
+          display: grid;
+          grid-template-columns: 30% 30% 30%;
+          align-content: space-between;
+          grid-gap: 15px;
           justify-content: center;
-          max-width: 1000px;
+          align-content: center;
         "
       >
         <q-card

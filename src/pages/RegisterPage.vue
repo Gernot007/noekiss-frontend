@@ -1,21 +1,3 @@
-<script setup>
-import { reactive, ref } from 'vue';
-import { signUpNewUser } from '../services/auth.service';
-import { useRouter } from 'vue-router';
-
-const router = useRouter();
-
-const meta = reactive({
-  firstname: '',
-  lastename: '',
-  birthday: '',
-  tel: '',
-});
-
-const email = ref('');
-const password = ref('');
-</script>
-
 <template>
   <q-page
     class="window-height window-width row justify-center items-center"
@@ -38,7 +20,16 @@ const password = ref('');
               <q-input
                 square
                 clearable
-                v-model="meta.firstname"
+                v-model="data.registrationCode"
+                type="text"
+                label="Registrierungscode"
+              >
+                <template v-slot:prepend> </template>
+              </q-input>
+              <q-input
+                square
+                clearable
+                v-model="data.first_name"
                 type="text"
                 label="Vorname"
               >
@@ -49,7 +40,7 @@ const password = ref('');
               <q-input
                 square
                 clearable
-                v-model="meta.lastname"
+                v-model="data.last_name"
                 type="text"
                 label="Nachname"
               >
@@ -60,7 +51,7 @@ const password = ref('');
               <q-input
                 square
                 clearable
-                v-model="meta.birthday"
+                v-model="data.birthday"
                 type="date"
                 label="Geburtsdatum"
               >
@@ -71,7 +62,7 @@ const password = ref('');
               <q-input
                 square
                 clearable
-                v-model="meta.tel"
+                v-model="data.phone"
                 type="telephone"
                 label="Mobilnummer"
               >
@@ -82,7 +73,7 @@ const password = ref('');
               <q-input
                 square
                 clearable
-                v-model="email"
+                v-model="data.email"
                 type="email"
                 label="Email"
               >
@@ -93,7 +84,7 @@ const password = ref('');
               <q-input
                 square
                 clearable
-                v-model="password"
+                v-model="data.password"
                 type="password"
                 label="Password"
               >
@@ -110,7 +101,7 @@ const password = ref('');
               color="purple-4"
               class="full-width text-white"
               label="Bestätigen"
-              @click="signUpNewUser(email, password, router, meta)"
+              @click="signUpNewUser(data, router)"
             />
           </q-card-actions>
           <q-card-section class="text-center q-pa-sm">
@@ -123,5 +114,23 @@ const password = ref('');
     </div>
   </q-page>
 </template>
+
+<script setup>
+import { reactive, ref } from 'vue';
+import { signUpNewUser } from '../services/auth.service';
+import { useRouter } from 'vue-router';
+
+const router = useRouter();
+
+const data = reactive({
+  registrationCode: '',
+  email: '',
+  password: '',
+  first_name: '',
+  last_name: '',
+  birthday: '',
+  phone: '',
+});
+</script>
 
 <style></style>

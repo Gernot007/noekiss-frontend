@@ -1,32 +1,46 @@
 <script setup>
 import { onMounted, reactive } from 'vue';
 import { databaseClient } from '../services/db.service';
-import { date } from 'quasar';
 
 const state = reactive({
-  events: [],
+  users: [],
+  loading: false,
   searchTerm: '',
   show_dialog: false,
   editedId: -1,
   editedItem: {},
   columns: [
     {
-      name: 'name',
-      label: 'Veranstaltung',
+      name: 'first_name',
+      label: 'Vorname',
+      sortable: true,
       align: 'left',
-      field: (row) => row.name,
+      field: (row) => row.first_name,
     },
     {
-      name: 'description',
-      label: 'Beschreibung',
+      name: 'last_name',
+      label: 'Nachname',
+      sortable: true,
       align: 'left',
-      field: (row) => row.description,
+      field: (row) => row.last_name,
     },
     {
-      name: 'dates',
-      label: 'Datum',
+      name: 'email',
+      label: 'E-Mail-Adresse',
       align: 'left',
-      field: (row) => row.date_ranges,
+      field: (row) => row.email,
+    },
+    {
+      name: 'role',
+      label: 'Rolle',
+      align: 'left',
+      field: (row) => row.role,
+    },
+    {
+      name: 'created_at',
+      label: 'Erstellt am',
+      align: 'left',
+      field: (row) => row.created_at,
     },
     {
       name: 'actions',
@@ -39,40 +53,23 @@ const state = reactive({
 
 async function onAddRow() {
   if (state.editedId > -1) {
-    await updateEvent(state.editedId, state.editedItem);
+    await updateUser(state.editedId, state.editedItem);
   } else {
-    await createEvent(state.editedItem);
+    await createUser(state.editedItem);
   }
   close();
 }
 
-async function createEvent(event) {
-  const eventData = await databaseClient.addEvent({
-    ...event,
-    date_ranges: undefined,
-  });
-
-  const date_ranges_returned = [];
-
-  if (event.date_ranges) {
-    for (const date_range of event.date_ranges) {
-      const data = await databaseClient.addDateRange({
-        event_id: eventData.id,
-        start_date: date_range.from,
-        end_date: date_range.to,
-      });
-      date_ranges_returned.push(data);
-    }
-  }
-
-  state.events.push({ ...eventData, date_ranges: date_ranges_returned });
+async function createUser(user) {
+  const userData = await databaseClient.createUser(user);
+  state.users.push(userData);
 }
 
-async function deleteEvent(id) {
-  const eventDeleted = await databaseClient.deleteEvent(id);
-  if (eventDeleted) {
-    state.events.splice(
-      state.events.findIndex((event) => event.id === id),
+async function deleteUser(id) {
+  const userDeleted = await databaseClient.deleteUser(id);
+  if (userDeleted) {
+    state.users.splice(
+      state.users.findIndex((user) => user.id === id),
       1
     );
   }
@@ -85,30 +82,13 @@ function close() {
   state.loading = false;
 }
 
-function compareStartDates(elem1, elem2) {
-  return Date.parse(elem1.start_date) - Date.parse(elem2.start_date);
-}
-
 function getPaginationLabel(firstRowIndex, endRowIndex, totalRowsNumber) {
   return `${firstRowIndex}-${endRowIndex} von ${totalRowsNumber}`;
 }
 
-function getDate(dateString) {
-  const date = new Date(dateString);
-  return `${pad(date.getDate())}-${pad(
-    date.getMonth() + 1
-  )}-${date.getFullYear()}`;
-}
-
-function pad(num, size = 2) {
-  num = num.toString();
-  while (num.length < size) num = '0' + num;
-  return num;
-}
-
 onMounted(async () => {
   state.loading = true;
-  state.events = await databaseClient.getEvents();
+  state.users = await databaseClient.getUsers();
   state.loading = false;
 });
 </script>
@@ -117,8 +97,9 @@ onMounted(async () => {
   <div class="q-pa-md">
     <q-card dense flat bordered style="max-width: 100%">
       <q-table
-        title="Veranstaltung"
-        :rows="state.events"
+        :loading="state.loading"
+        title="Benutzer"
+        :rows="state.users"
         :columns="state.columns"
         row-key="id"
         :no-data-label="'Keine Daten verfügbar.'"
@@ -127,11 +108,10 @@ onMounted(async () => {
         :rows-per-page-label="'Zeilen pro Seite'"
         :pagination-label="getPaginationLabel"
         :filter="state.searchTerm"
-        :loading="state.loading"
         class="styled-table"
       >
         <template v-slot:top>
-          <div class="text-h6 q-pb-md">Veranstaltungsübersicht</div>
+          <div class="text-h6 q-pb-md">Benutzerübersicht</div>
           <div style="width: 100%" class="row">
             <div class="col-3">
               <q-input
@@ -149,24 +129,20 @@ onMounted(async () => {
         ></template>
         <template v-slot:body="props">
           <q-tr :props="props">
-            <q-td key="name" :props="props">
-              {{ props.row.name }}
+            <q-td key="first_name" :props="props">
+              {{ props.row.first_name }}
             </q-td>
-            <q-td key="description" :props="props">
-              {{ props.row.description }}
+            <q-td key="last_name" :props="props">
+              {{ props.row.last_name }}
             </q-td>
-            <q-td key="dates" :props="props">
-              {{
-                props.row.date_ranges
-                  .sort(compareStartDates)
-                  .map(
-                    (date_range) =>
-                      `${getDate(date_range.start_date)}-${getDate(
-                        date_range.end_date
-                      )}`
-                  )
-                  .join(', ')
-              }}
+            <q-td key="email" :props="props">
+              {{ props.row.email }}
+            </q-td>
+            <q-td key="role" :props="props">
+              {{ props.row.role }}
+            </q-td>
+            <q-td key="created_at" :props="props">
+              {{ new Date(props.row.created_at).toLocaleString() }}
             </q-td>
             <q-td key="actions" :props="props">
               <div class="q-pa-md q-gutter-sm">
@@ -175,8 +151,8 @@ onMounted(async () => {
                   icon="fa-solid fa-trash"
                   size="sm"
                   @click="
-                    deleteEvent(
-                      state.events.find((event) => event.id === props.row.id).id
+                    deleteUser(
+                      state.users.find((user) => user.id === props.row.id).id
                     )
                   "
                 ></q-btn>
@@ -192,7 +168,7 @@ onMounted(async () => {
             outline
             dense
             color="primary"
-            label="Veranstaltung hinzufügen"
+            label="Benutzer hinzufügen"
             @click="state.show_dialog = true"
           ></q-btn>
         </q-card-section>
@@ -203,28 +179,36 @@ onMounted(async () => {
   <q-dialog v-model="state.show_dialog" @hide="close">
     <q-card class="q-pa-md q-gutter-md">
       <q-card-section>
-        <div class="text-h6">Veranstaltung</div>
+        <div class="text-h6">Benutzer</div>
       </q-card-section>
+
       <q-card-section>
         <div style="max-width: 90%">
-          <q-input v-model="state.editedItem.name" label="Name"></q-input>
           <q-input
-            v-model="state.editedItem.description"
-            type="textarea"
-            label="Beschreibung"
+            v-model="state.editedItem.first_name"
+            label="Vorname"
           ></q-input>
-          <div class="q-pa-lg column items-center">
-            <q-date
-              v-model="state.editedItem.date_ranges"
-              range
-              multiple
-              default-view="Months"
-              :landscape="true"
-              label="Datum"
-            ></q-date>
-          </div>
+          <q-input
+            v-model="state.editedItem.last_name"
+            label="Nachname"
+          ></q-input>
+          <q-input
+            v-model="state.editedItem.email"
+            label="E-Mail-Adresse"
+          ></q-input>
+          <q-input
+            type="password"
+            v-model="state.editedItem.password"
+            label="Passwort"
+          ></q-input>
+          <q-select
+            :options="['Admin', 'Haupthelfer']"
+            v-model="state.editedItem.role"
+            label="Rolle"
+          ></q-select>
         </div>
       </q-card-section>
+
       <q-card-actions align="center">
         <q-btn label="Schließen" size="l" @click="close"></q-btn>
         <q-btn

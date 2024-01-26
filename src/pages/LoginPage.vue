@@ -73,19 +73,12 @@
 import { onMounted, ref } from 'vue';
 import { signInWithPassword } from '../services/auth.service';
 import { useRouter } from 'vue-router';
-import { databaseClient } from '../services/db.service_v2';
 
 const router = useRouter();
 
 const loading = ref(false);
 const email = ref('');
 const password = ref('');
-
-onMounted(async () => {
-  const areaWithChilds = await databaseClient.getChildsOfArea(6);
-  const areasWithNoParent = await databaseClient.getAreasWithNoParent();
-  const areasAndEvents = await databaseClient.getAreasAndEvents(1);
-});
 </script>
 
 <style></style>

@@ -10,39 +10,60 @@ import ShopsPage from '../pages/ShopsPage.vue';
 import ShopPage from '../pages/ShopPage.vue';
 import EmployeesPage from '../pages/EmployeesPage.vue';
 import EventsPage from '../pages/EventsPage.vue';
+import UsersPage from '../pages/UsersPage.vue';
+import AdminSettingsPage from 'src/pages/AdminSettingsPage.vue';
+import AreaPage from 'src/pages/AreaPage.vue';
 
 const routes: RouteRecordRaw[] = [
   {
     path: '/',
     component: HomePage,
-    meta: { layout: AppLayout },
+    meta: { layout: AppLayout, authorize: ['Admin', 'Haupthelfer'] },
   },
   {
     path: '/account',
     component: AccountPage,
-    meta: { layout: AppLayout, authorize: ['Administrator', 'Haupthelfer'] },
+    meta: { layout: AppLayout, authorize: ['Admin', 'Haupthelfer'] },
+  },
+  {
+    path: '/admin',
+    component: AdminSettingsPage,
+    meta: { layout: AppLayout, authorize: ['Admin'] },
+  },
+  {
+    path: '/users',
+    component: UsersPage,
+    meta: { layout: AppLayout, authorize: ['Admin'] },
   },
   {
     path: '/employees',
     component: EmployeesPage,
-    meta: { layout: AppLayout, authorize: ['Administrator', 'Haupthelfer'] },
+    meta: { layout: AppLayout, authorize: ['Admin'] },
   },
   {
     path: '/events',
     component: EventsPage,
-    meta: { layout: AppLayout, authorize: ['Administrator', 'Haupthelfer'] },
+    meta: { layout: AppLayout, authorize: ['Admin'] },
   },
   {
     path: '/shops',
     component: ShopsPage,
-    meta: { layout: AppLayout, authorize: ['Administrator', 'Haupthelfer'] },
+    meta: { layout: AppLayout, authorize: ['Admin', 'Haupthelfer'] },
   },
   {
     path: '/shops/:id',
     component: ShopPage,
     meta: {
       layout: AppLayout,
-      authorize: ['Administrator', 'Haupthelfer'],
+      authorize: ['Admin', 'Haupthelfer'],
+    },
+  },
+  {
+    path: '/shops/:parent_id/areas/:id',
+    component: AreaPage,
+    meta: {
+      layout: AppLayout,
+      authorize: ['Admin', 'Haupthelfer'],
     },
   },
   {

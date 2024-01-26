@@ -9,7 +9,7 @@ export default {
 
   setup() {
     const user = ref(getCurrentUser());
-    const isAdmin = ref(user.value?.user_metadata?.role === 'Administrator');
+    const isAdmin = ref(user.value?.user_metadata?.role === 'Admin');
     const isHaupthelfer = ref(
       user.value?.user_metadata?.role === 'Haupthelfer'
     );
@@ -51,7 +51,8 @@ export default {
           <q-btn flat round dense @click="this.$router.push('/')">NÖKISS</q-btn>
         </q-toolbar-title>
         <div class="q-pa-md">
-          <q-btn flat round dense icon="whatshot">
+          <q-btn flat @click="this.$router.push('/admin')">Einstellungen</q-btn>
+          <q-btn flat round dense icon="person">
             <q-menu>
               <div class="row no-wrap q-pa-md">
                 <div class="column">
@@ -69,20 +70,30 @@ export default {
                 <q-separator vertical inset class="q-mx-lg" />
 
                 <div class="column items-center">
-                  <q-avatar size="72px">
+                  <!--   <q-avatar size="72px">
                     <img src="https://cdn.quasar.dev/img/avatar4.jpg" />
-                  </q-avatar>
-
-                  <div class="text-subtitle1 q-mt-md q-mb-xs">John Doe</div>
-
-                  <q-btn
-                    color="primary"
-                    label="Logout"
-                    push
-                    size="sm"
-                    v-close-popup
-                    @click="logout(router)"
-                  />
+                  </q-avatar> -->
+                  <q-list>
+                    <q-item>
+                      <q-item-section>
+                        {{
+                          user.user_metadata.first_name +
+                          ' ' +
+                          user.user_metadata.last_name
+                        }}</q-item-section
+                      >
+                    </q-item>
+                    <q-item>
+                      <q-btn
+                        color="primary"
+                        label="Logout"
+                        push
+                        size="md"
+                        v-close-popup
+                        @click="logout(router)"
+                      />
+                    </q-item>
+                  </q-list>
                 </div>
               </div>
             </q-menu>
@@ -94,31 +105,45 @@ export default {
     <q-drawer v-model="leftDrawerOpen" show-if-above class="bg-primary">
       <q-list dark>
         <q-item-label header>Kategorien</q-item-label>
+        <q-item v-if="isAdmin" clickable @click="this.$router.push('/users')">
+          <q-item-section avatar>
+            <q-icon name="person" />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>Benutzer</q-item-label>
+            <q-item-label caption>Übersicht aller Benutzer</q-item-label>
+          </q-item-section>
+        </q-item>
 
         <q-item
-          v-if="isAdmin || isHaupthelfer"
+          v-if="isAdmin"
           clickable
-          target="_blank"
-          rel="noopener"
-          @click="this.$router.push('/events')"
+          @click="this.$router.push('/employees')"
         >
           <q-item-section avatar>
-            <q-icon name="school" />
+            <q-icon name="person" />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>Mitarbeiter</q-item-label>
+            <q-item-label caption>Übersicht aller Mitarbeiter</q-item-label>
+          </q-item-section>
+        </q-item>
+        <q-item v-if="isAdmin" clickable @click="this.$router.push('/events')">
+          <q-item-section avatar>
+            <q-icon name="event" />
           </q-item-section>
           <q-item-section>
             <q-item-label>Veranstaltungen</q-item-label>
-            <q-item-label caption>Übersicht der Veranstaltungen</q-item-label>
+            <q-item-label caption>Übersicht aller Veranstaltungen</q-item-label>
           </q-item-section>
         </q-item>
         <q-item
           v-if="isAdmin || isHaupthelfer"
           clickable
-          target="_blank"
-          rel="noopener"
           @click="this.$router.push('/shops')"
         >
           <q-item-section avatar>
-            <q-icon name="school" />
+            <q-icon name="work" />
           </q-item-section>
           <q-item-section>
             <q-item-label>Werkstätten</q-item-label>
@@ -128,16 +153,13 @@ export default {
         <q-item
           v-if="isAdmin || isHaupthelfer"
           clickable
-          target="_blank"
-          rel="noopener"
-          @click="this.$router.push('/employees')"
+          @click="this.$router.push('/')"
         >
           <q-item-section avatar>
-            <q-icon name="school" />
+            <q-icon name="book" />
           </q-item-section>
           <q-item-section>
-            <q-item-label>Mitarbeiter</q-item-label>
-            <q-item-label caption>Übersicht der Mitarbeiter</q-item-label>
+            <q-item-label>Berichte & Auswertungen</q-item-label>
           </q-item-section>
         </q-item>
       </q-list>

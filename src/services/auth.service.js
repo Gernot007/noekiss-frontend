@@ -1,7 +1,8 @@
 import { supabase } from '../supabase';
+import { databaseClient } from './db.service';
 
 export function getCurrentUser() {
-  return JSON.parse(localStorage.getItem('sb-yezzfvmotdjgwlnyerfp-auth-token'))
+  return JSON.parse(localStorage.getItem('sb-wzcdkxlwbmrmaeekjsgb-auth-token'))
     ?.user;
 }
 export async function logout(router) {
@@ -34,16 +35,37 @@ export async function signInWithPassword(email, password, router) {
     this.loading = false;
   }
 }
-export async function signUpNewUser(email, password, router, meta) {
+
+export async function signUpNewUser(_data, router) {
   this.loading = true;
   try {
+    const settings = await databaseClient.getSettings();
+
+    let role;
+
+    if (settings.registration_code_admin === _data.registrationCode) {
+      role = 'Admin';
+    } else if (
+      settings.registration_code_haupthelfer === _data.registrationCode
+    ) {
+      role = 'Haupthelfer';
+    }
+
+    if (!role) {
+      alert('Der Registrierungscode ist ungültig.');
+    }
+
     const { data, error } = await supabase.auth.signUp({
-      email: email,
-      password: password,
+      email: _data.email,
+      password: _data.password,
       options: {
         emailRedirectTo: 'http://localhost:9000/login',
         data: {
-          ...meta,
+          ..._data,
+          role: role,
+          email: undefined,
+          password: undefined,
+          registrationCode: undefined,
         },
       },
     });

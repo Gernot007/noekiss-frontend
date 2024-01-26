@@ -1,234 +1,466 @@
 <script setup>
-import { onMounted, reactive, computed } from 'vue';
+import { reactive, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { databaseClient } from '../services/db.service';
-import TimeslotComponent from '../components/TimeslotComponent.vue';
 
 const route = useRoute();
 
 const state = reactive({
-  editedItem: {
-    selected: [],
-  },
-  editedTimeslot: {},
-  editedArea: {},
   show_dialog: false,
-  show_area_dialog: false,
-  show_employee_list: false,
+  editedId: -1,
+  editedItem: {},
+  subShops: [],
+  showSubShopDialog: false,
+  showAddEmployeeDialog: false,
+  subShopsColumns: [
+    {
+      name: 'name',
+      label: 'Name',
+      sortable: true,
+      align: 'left',
+      field: (row) => row.name,
+    },
+    {
+      name: 'description',
+      label: 'Beschreibung',
+      align: 'left',
+      field: (row) => row.description,
+    },
+    {
+      name: 'actions',
+      label: 'Aktionen',
+      field: 'actions',
+      align: 'center',
+    },
+  ],
+  personColumns: [
+    {
+      name: 'first_name',
+      label: 'Vorname',
+      sortable: true,
+      align: 'left',
+      field: (row) => row.first_name,
+    },
+    {
+      name: 'last_name',
+      label: 'Nachname',
+      sortable: true,
+      align: 'left',
+      field: (row) => row.last_name,
+    },
+    {
+      name: 'email',
+      label: 'E-Mail-Adresse',
+      align: 'left',
+      field: (row) => row.email,
+    },
+    {
+      name: 'tel',
+      label: 'Telefonnummer',
+      align: 'left',
+      field: (row) => row.tel,
+    },
+    {
+      name: 'birthday',
+      label: 'Geburtsdatum',
+      align: 'left',
+      field: (row) => row.birthday,
+    },
+    {
+      name: 'gender',
+      label: 'Geschlecht',
+      align: 'left',
+      field: (row) => row.gender,
+    },
+    {
+      name: 'description',
+      label: 'Beschreibung',
+      align: 'left',
+      field: (row) => row.description,
+    },
+    {
+      name: 'note',
+      label: 'Notiz',
+      align: 'left',
+      field: (row) => row.note,
+    },
+    {
+      name: 'actions',
+      label: 'Aktionen',
+      field: 'actions',
+      align: 'center',
+    },
+  ],
+  employeesColumns: [
+    {
+      name: 'first_name',
+      label: 'Vorname',
+      sortable: true,
+      align: 'left',
+      field: (row) => row.first_name,
+    },
+    {
+      name: 'last_name',
+      label: 'Nachname',
+      sortable: true,
+      align: 'left',
+      field: (row) => row.last_name,
+    },
+    {
+      name: 'email',
+      label: 'E-Mail-Adresse',
+      align: 'left',
+      field: (row) => row.email,
+    },
+    {
+      name: 'tel',
+      label: 'Telefonnummer',
+      align: 'left',
+      field: (row) => row.tel,
+    },
+    {
+      name: 'birthday',
+      label: 'Geburtsdatum',
+      align: 'left',
+      field: (row) => row.birthday,
+    },
+    {
+      name: 'actions',
+      label: 'Aktionen',
+      field: 'actions',
+      align: 'center',
+    },
+  ],
+  selectedShop: {},
+  selectedEvent: {},
+  selectedShopEvent: null,
   events: [],
+  active_tab: 'default',
+  persons: [],
   employees: [],
-  selectedShop: null,
-  selectedEvent: null,
-  selectedAreaName: null,
+  selectedEmployees: [],
 });
 
 onMounted(async () => {
-  const shop = await databaseClient.fetchShop(route.params.id);
-  state.selectedShop = { ...shop, label: shop.name, value: shop.name };
-  const events = (await databaseClient.fetchEvents()).map((event) => {
-    return { ...event, label: event.name, value: event.name };
+  state.selectedShop = await databaseClient.getShop(route.params.id);
+  state.events = (await databaseClient.getEvents()).map((event) => {
+    return {
+      ...event,
+      label: event.name,
+    };
   });
-  state.selectedEvent = events.at(-1);
-  state.events = events;
-  state.employees = await databaseClient.fetchEmployees();
-});
-
-const areas = computed(() => {
-  return state.selectedShop?.areas?.filter(
-    (area) => area.event_id === state.selectedEvent?.id
+  state.selectedEvent = state.events.at(-1);
+  state.subShops = await databaseClient.getSubShops(state.selectedShop.id);
+  state.selectedShopEvent = await databaseClient.getShopEventByIds(
+    route.params.id,
+    state.selectedEvent.id
   );
+  state.employees = await databaseClient.getEmployeesOfShop(
+    state.selectedShopEvent.id
+  );
+  state.persons = await databaseClient.getPersons();
 });
 
-const selectedArea = computed(() => {
-  return areas.value?.find((area) => area.name === state.selectedAreaName);
-});
+async function onAddRow() {
+  if (state.editedId > -1) {
+    await updateSubShop(state.editedId, state.editedItem);
+  } else {
+    await createSubShop(state.editedItem);
+  }
+  close();
+}
+
+function onUpdateSubShop(item) {
+  state.loading = true;
+  state.showSubShopDialog = true;
+  state.editedItem = Object.assign({}, item);
+  state.editedId = item.id;
+}
+
+async function updateSubShop(id, shop) {
+  const shopData = await databaseClient.updateShop(id, {
+    ...shop,
+    parent_id: state.selectedShop.id,
+  });
+  const index = state.subShops.findIndex((shop) => shop.id === id);
+  Object.assign(state.subShops[index], shopData);
+  console.debug(`Successfully updated shop with id: '${id}'`);
+}
+
+async function createSubShop(shop) {
+  const shopData = await databaseClient.addShop({
+    ...shop,
+    parent_id: state.selectedShop.id,
+  });
+  state.subShops.push(shopData);
+}
+
+async function deleteSubShop(id) {
+  const shopDeleted = await databaseClient.deleteShop(id);
+  if (shopDeleted) {
+    state.subShops.splice(
+      state.subShops.findIndex((shop) => shop.id === id),
+      1
+    );
+  }
+}
 
 function close() {
-  state.editedTimeslot = {};
+  state.loading = false;
   state.show_dialog = false;
-  state.editedArea = {};
-  state.show_area_dialog = false;
+  state.editedItem = {};
+  state.showSubShopDialog = false;
+  state.showAddEmployeeDialog = false;
 }
 
-async function addTimeslot() {
-  const timeslotCreated = await databaseClient.createTimeslot({
-    ...state.editedTimeslot,
-    area_id: selectedArea.value.id,
-  });
-  if (timeslotCreated) {
-    selectedArea.value.timeslots.push(timeslotCreated);
+async function addShopEvent() {
+  if (
+    confirm(
+      `Die Werkstatt ${state.selectedShop.name} wird einmalig der Veranstaltung ${state.selectedEvent.name} zugewiesen.`
+    )
+  ) {
+    state.selectedShopEvent = await databaseClient.addShopEvent(
+      state.selectedShop.id,
+      state.selectedEvent.id
+    );
   }
-  close();
 }
 
-async function addArea() {
-  const areaCreated = await databaseClient.createArea({
-    ...state.editedArea,
-    shop_id: state.selectedShop.id,
-    event_id: state.selectedEvent.id,
-  });
-  if (areaCreated) {
-    state.selectedShop.areas.push(areaCreated);
+async function addEmployees() {
+  for (const employee of state.selectedEmployees) {
+    try {
+      const data = await databaseClient.addEmployeeShop(
+        employee.id,
+        state.selectedShopEvent.id
+      );
+      state.employees.push(data.person);
+    } catch (error) {
+      console.error(error);
+    }
   }
-  close();
 }
 
-async function updateShop() {
-  const shop = await databaseClient.fetchShop(route.params.id);
-  state.selectedShop = { ...shop, label: shop.name, value: shop.name };
+async function deleteEmployee(person_id) {
+  try {
+    await databaseClient.deleteEmployeeShop(
+      person_id,
+      state.selectedShopEvent.id
+    );
+    state.employees.splice(
+      state.employees.findIndex((employee) => employee.id === person_id),
+      1
+    );
+  } catch (error) {
+    console.error(error);
+  }
 }
 </script>
 
 <template>
-  <q-page
-    class="q-pa-md"
-    style="display: block; margin-left: auto; margin-right: auto"
-  >
-    <div class="q-gutter-md">
-      <q-select
-        outlined
-        v-model="state.selectedEvent"
-        :options="state.events"
-        label="Events"
-      />
-      <q-select
-        outlined
-        v-model="state.selectedShop"
-        :options="[state.selectedShop]"
-        label="Werkstatt"
-      />
-
-      <q-tabs
-        v-model="state.selectedAreaName"
-        no-caps
-        class="bg-orange text-white shadow-2"
-      >
-        <q-tab
-          v-for="area in areas"
-          :key="area.id"
-          :name="area.name"
-          :label="area.name"
-        />
-      </q-tabs>
-      <div
-        v-if="state.selectedEvent && state.selectedShop"
-        style="
-          margin-left: auto;
-          margin-right: auto;
-          display: flex;
-          flex-direction: row;
-          justify-content: center;
-          align-items: stretch;
-          max-width: 1000px;
-        "
-      >
-        <q-btn @click="state.show_area_dialog = true">Bereich hinzufügen</q-btn>
-      </div>
-      <div
-        v-if="selectedArea"
-        style="
-          display: flex;
-          flex-direction: row;
-          margin-left: auto;
-          margin-right: auto;
-          align-items: stretch;
-          justify-content: center;
-          max-width: 1000px;
-        "
-      >
-        <q-btn @click="state.show_dialog = true">Zeitslot hinzufügen</q-btn>
-      </div>
-
-      <div
-        class="q-pa-md row items-start q-gutter-sm"
-        style="
-          display: grid;
-          grid-template-columns: 30% 30% 30%;
-          align-content: space-between;
-          grid-gap: 15px;
-          justify-content: center;
-          align-content: center;
-        "
-      >
-        <q-card
-          v-bind:model-value="state.selectedEvent"
-          v-for="day in state.selectedEvent?.dates"
-          :key="day"
-        >
-          <q-card-section
-            v-if="selectedArea?.timeslots.find((slot) => slot.day === day)"
-            class="bg-primary text-black"
-          >
-            <div class="text-h5" style="text-align: center">{{ day }}</div>
+  <div class="q-pa-md">
+    <div class="q-pb-md">
+      <q-card dense flat bordered style="max-width: 100%">
+        <div class="col">
+          <q-card-section class="row">
+            <div class="text-h6">{{ state.selectedShop.name }}</div>
           </q-card-section>
-          <div
-            v-bind:model-value="selectedArea"
-            v-for="timeslot in selectedArea?.timeslots"
-            :key="timeslot.id"
+          <q-card-section class="row" v-if="state.selectedShop.description">
+            <div class="text-subtitle1">
+              {{ state.selectedShop.description }}
+            </div>
+          </q-card-section>
+        </div>
+      </q-card>
+    </div>
+
+    <div v-if="state.selectedShop.hasAreas || state.subShops.length">
+      <q-card dense flat bordered style="max-width: 100%">
+        <q-table
+          v-if="state.subShops.length > 0"
+          flat
+          bordered
+          class="styled-table"
+          :rows="state.subShops"
+          :columns="state.subShopsColumns"
+          row-key="id"
+          :filter="filter"
+          hide-pagination
+        >
+          <template v-slot:top>
+            <div class="text-h6 q-pb-md">Bereiche</div>
+          </template>
+          <template v-slot:body="props">
+            <q-tr :props="props" class="cursor-pointer">
+              <q-td key="name" :props="props">
+                {{ props.row.name }}
+              </q-td>
+              <q-td key="description" :props="props">
+                {{ props.row.description }}
+              </q-td>
+              <q-td key="actions" :props="props">
+                <div class="q-pa-md q-gutter-sm">
+                  <q-btn
+                    color="blue"
+                    icon="fa-solid fa-eye"
+                    size="sm"
+                    spread="true"
+                    @click="
+                      this.$router.push(
+                        `/shops/${state.selectedShop.id}/areas/${props.row.id}`
+                      )
+                    "
+                  ></q-btn>
+                  <q-btn
+                    color="orange"
+                    icon="fa-solid fa-edit"
+                    size="sm"
+                    @click="onUpdateSubShop(props.row)"
+                  ></q-btn>
+                  <q-btn
+                    color="red"
+                    icon="fa-solid fa-trash"
+                    size="sm"
+                    @click="
+                      deleteSubShop(
+                        state.subShops.find((shop) => shop.id === props.row.id)
+                          .id
+                      )
+                    "
+                  ></q-btn>
+                </div>
+              </q-td>
+            </q-tr>
+          </template>
+        </q-table>
+        <div class="col">
+          <q-card-section class="row">
+            <q-btn
+              flat
+              outline
+              dense
+              color="primary"
+              label="Bereich hinzufügen"
+              @click="state.showSubShopDialog = true"
+            ></q-btn>
+          </q-card-section>
+        </div>
+      </q-card>
+    </div>
+    <div v-else>
+      <div class="q-pb-md">
+        <q-select
+          outlined
+          v-model="state.selectedEvent"
+          :options="state.events"
+          label="Event"
+          class="bg-white"
+        />
+      </div>
+      <div v-if="state.selectedShopEvent">
+        <div class="q-pb-md">
+          <q-tabs
+            v-model="state.active_tab"
+            narrow-indicator
+            class="bg-orange text-white shadow-2"
           >
-            <TimeslotComponent
-              v-if="timeslot && timeslot.day === day"
-              :timeslot="timeslot"
-              :employees="state.employees"
-              @update-shop="updateShop"
-            ></TimeslotComponent>
-          </div>
-        </q-card>
+            <q-tab name="default" label="Standard" />
+            <q-tab name="detail" label="Detail" />
+          </q-tabs>
+        </div>
+        <div v-if="state.active_tab === 'default'">
+          <q-table
+            title="Mitarbeiter"
+            :rows="state.employees"
+            :columns="state.employeesColumns"
+            row-key="id"
+            class="styled-table"
+            :no-data-label="'Keine Daten verfügbar.'"
+            :loading-label="'Daten werden geladen...'"
+            :loading="state.loading"
+            hide-no-data
+            hide-pagination
+          >
+            <template v-slot:body="props">
+              <q-tr :props="props">
+                <q-td key="first_name" :props="props">
+                  {{ props.row.first_name }}
+                </q-td>
+                <q-td key="last_name" :props="props">
+                  {{ props.row.last_name }}
+                </q-td>
+                <q-td key="email" :props="props">
+                  {{ props.row.email }}
+                </q-td>
+                <q-td key="tel" :props="props">
+                  {{ props.row.tel }}
+                </q-td>
+                <q-td key="birthday" :props="props">
+                  {{ props.row.birthday }}</q-td
+                >
+                <q-td key="actions" :props="props">
+                  <div class="q-pa-md q-gutter-sm">
+                    <q-btn
+                      color="red"
+                      icon="fa-solid fa-trash"
+                      size="sm"
+                      @click="deleteEmployee(props.row.id)"
+                    ></q-btn>
+                  </div>
+                </q-td>
+              </q-tr>
+            </template>
+          </q-table>
+          <q-card dense flat bordered style="max-width: 100%">
+            <div class="col">
+              <q-card-section class="row">
+                <q-btn
+                  flat
+                  outline
+                  dense
+                  color="primary"
+                  label="Mitarbeiter einteilen"
+                  @click="state.showAddEmployeeDialog = true"
+                ></q-btn>
+              </q-card-section>
+            </div>
+          </q-card>
+        </div>
+      </div>
+      <div v-else>
+        <div v-if="state.active_tab === 'default'">
+          <q-card dense flat bordered style="max-width: 100%">
+            <div class="col">
+              <q-card-section class="row">
+                <q-btn
+                  flat
+                  outline
+                  dense
+                  color="primary"
+                  label="Werkstatt der Veranstaltung zuweisen"
+                  @click="addShopEvent"
+                ></q-btn>
+              </q-card-section>
+            </div>
+          </q-card>
+        </div>
       </div>
     </div>
-    <q-dialog v-model="state.show_dialog" :position="'top'">
-      <q-card class="my-card" flat bordered>
+    <q-dialog v-model="state.showSubShopDialog" @hide="close">
+      <q-card class="q-pa-md q-gutter-md">
         <q-card-section>
-          <div class="text-h6">Zeitslot hinzufügen</div>
+          <div class="text-h6">Bereich</div>
         </q-card-section>
 
         <q-card-section>
-          <div class="row">
+          <div style="max-width: 90%">
             <q-input
-              v-model="state.editedTimeslot.day"
-              type="date"
-              label="Tag"
-            ></q-input>
-            <q-input
-              v-model="state.editedTimeslot.start_time"
-              type="time"
-              label="Startzeit"
-            ></q-input>
-            <q-input
-              v-model="state.editedTimeslot.end_time"
-              type="time"
-              label="Endzeit"
-            ></q-input>
-          </div>
-        </q-card-section>
-
-        <q-card-actions align="center">
-          <q-btn label="Schließen" size="l" @click="close"></q-btn>
-          <q-btn
-            label="OK"
-            color="primary"
-            v-close-popup
-            @click="addTimeslot"
-          ></q-btn>
-        </q-card-actions>
-      </q-card>
-    </q-dialog>
-    <q-dialog v-model="state.show_area_dialog" :position="'top'">
-      <q-card class="my-card" flat bordered>
-        <q-card-section>
-          <div class="text-h6">Bereich hinzufügen</div>
-        </q-card-section>
-
-        <q-card-section>
-          <div class="row">
-            <q-input
-              v-model="state.editedArea.name"
+              v-model="state.editedItem.name"
               type="texr"
               label="Name"
             ></q-input>
             <q-input
-              v-model="state.editedTimeslot.description"
-              type="text"
+              v-model="state.editedItem.description"
+              type="textarea"
               label="Beschreibung"
             ></q-input>
           </div>
@@ -240,12 +472,38 @@ async function updateShop() {
             label="OK"
             color="primary"
             v-close-popup
-            @click="addArea"
+            @click="onAddRow"
           ></q-btn>
         </q-card-actions>
       </q-card>
     </q-dialog>
-  </q-page>
+    <q-dialog v-model="state.showAddEmployeeDialog" @hide="close">
+      <q-card style="width: 1200px; max-width: 80vw">
+        <q-card-section>
+          <q-table
+            flat
+            bordered
+            title="Mitarbeiter hinzufügen"
+            :rows="state.persons"
+            :columns="state.personColumns"
+            row-key="id"
+            selection="multiple"
+            v-model:selected="state.selectedEmployees"
+          />
+        </q-card-section>
+
+        <q-card-actions align="center">
+          <q-btn label="Schließen" size="l" @click="close"></q-btn>
+          <q-btn
+            label="OK"
+            color="primary"
+            v-close-popup
+            @click="addEmployees"
+          ></q-btn>
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+  </div>
 </template>
 
 <style scoped>

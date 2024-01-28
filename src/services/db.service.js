@@ -23,6 +23,65 @@ class DatabaseClient {
     return data[0];
   }
 
+  async addShopsManagers(shop_id, person_id) {
+    const { data, error } = await this.supabase.from('shops_managers').insert({
+      shop_id,
+      person_id,
+    }).select(`
+      *,
+      person: person_id (*)`);
+    if (error) {
+      throw error;
+    }
+    return data[0];
+  }
+
+  async deleteMangerFromShop(shop_id, person_id) {
+    if (
+      confirm(
+        'Wollen Sie den Haupthelfer wirklich entfernen? Dies kann nicht rückgängig gemacht werden.'
+      )
+    ) {
+      const { error } = await this.supabase
+        .from('shops_managers')
+        .delete()
+        .eq('shop_id', shop_id)
+        .eq('person_id', person_id);
+      if (error) {
+        throw error;
+      }
+      return true;
+    }
+    return false;
+  }
+
+  async getManagersOfShop(shop_id) {
+    const { data, error } = await this.supabase
+      .from('shops_managers')
+      .select(
+        `
+      *,
+      manager: person_id (
+        *
+      )`
+      )
+      .eq('shop_id', shop_id);
+    if (error) {
+      throw error;
+    }
+    return data.map((data) => data.manager);
+  }
+
+  async getShopsManagers() {
+    const { data, error } = await this.supabase.from('shops_managers').select(`
+      *
+    `);
+    if (error) {
+      throw error;
+    }
+    return data;
+  }
+
   async addEmployeeShop(person_id, shop_event_id) {
     const { data, error } = await this.supabase.from('employees_shops').insert({
       person_id,

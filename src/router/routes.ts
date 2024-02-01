@@ -13,6 +13,7 @@ import EventsPage from '../pages/EventsPage.vue';
 import UsersPage from '../pages/UsersPage.vue';
 import AdminSettingsPage from 'src/pages/AdminSettingsPage.vue';
 import AreaPage from 'src/pages/AreaPage.vue';
+import ReportPage from 'src/pages/ReportPage.vue';
 
 const routes: RouteRecordRaw[] = [
   {
@@ -38,7 +39,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/employees',
     component: EmployeesPage,
-    meta: { layout: AppLayout, authorize: ['Admin'] },
+    meta: { layout: AppLayout, authorize: ['Admin', 'Haupthelfer'] },
   },
   {
     path: '/events',
@@ -48,7 +49,12 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/shops',
     component: ShopsPage,
-    meta: { layout: AppLayout, authorize: ['Admin', 'Haupthelfer'] },
+    meta: { layout: AppLayout, authorize: ['Admin'] },
+  },
+  {
+    path: '/reports',
+    component: ReportPage,
+    meta: { layout: AppLayout, authorize: ['Admin'] },
   },
   {
     path: '/shops/:id',

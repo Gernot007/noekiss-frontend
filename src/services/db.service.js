@@ -23,8 +23,142 @@ class DatabaseClient {
     return data[0];
   }
 
-  async addShopsManagers(shop_id, person_id) {
-    const { data, error } = await this.supabase.from('shops_managers').insert({
+  async employeeToTimeslot(timeslot_id, person_id) {
+    const { data, error } = await this.supabase
+      .from('timeslot_employee')
+      .insert({
+        timeslot_id,
+        person_id,
+      })
+      .select('*');
+    if (error) {
+      throw error;
+    }
+    return data[0];
+  }
+
+  async removeEmployeeFromTimeslot(timeslot_id, person_id) {
+    const { data, error } = await this.supabase
+      .from('timeslot_employee')
+      .delete()
+      .eq('timeslot_id', timeslot_id)
+      .eq('person_id', person_id);
+    if (error) {
+      throw error;
+    }
+    return true;
+  }
+
+  async managerToTimeslot(timeslot_id, person_id) {
+    const { data, error } = await this.supabase
+      .from('timeslot_manager')
+      .insert({
+        timeslot_id,
+        person_id,
+      })
+      .select('*');
+    if (error) {
+      throw error;
+    }
+    return data[0];
+  }
+
+  async removeManagerFromTimeslot(timeslot_id, person_id) {
+    const { data, error } = await this.supabase
+      .from('timeslot_manager')
+      .delete()
+      .eq('timeslot_id', timeslot_id)
+      .eq('person_id', person_id);
+    if (error) {
+      throw error;
+    }
+    return true;
+  }
+
+  async addTimeslot(timeslot) {
+    const { data, error } = await this.supabase
+      .from('timeslots')
+      .insert(timeslot)
+      .select('*');
+    if (error) {
+      throw error;
+    }
+    return data[0];
+  }
+
+  async updateTimeslot(id, timeslot) {
+    const { data, error } = await this.supabase
+      .from('timeslots')
+      .update(timeslot)
+      .eq('id', id)
+      .select('*');
+    if (error) {
+      throw error;
+    }
+    return data[0];
+  }
+
+  async deleteTimeslot(id) {
+    if (
+      confirm(
+        'Wollen Sie den Zeitslot wirklich löschen? Dies kann nicht rückgängig gemacht werden.'
+      )
+    ) {
+      const { error } = await this.supabase
+        .from('timeslots')
+        .delete()
+        .eq('id', id);
+      if (error) {
+        throw error;
+      }
+      return true;
+    }
+    return false;
+  }
+
+  async getTimeslot(id) {
+    const { data, error } = await this.supabase
+      .from('timeslots')
+      .select('*')
+      .eq('id', id);
+    if (error) {
+      throw error;
+    }
+    return data[0];
+  }
+
+  async getTimeslots() {
+    const { data, error } = await this.supabase
+      .from('timeslots')
+      .select(
+        `
+      *
+    `
+      )
+      .is('parent_id', null);
+    if (error) {
+      throw error;
+    }
+    return data;
+  }
+
+  async getSubTimeslots(parent_id) {
+    const { data, error } = await this.supabase
+      .from('timeslots')
+      .select(
+        `
+      *
+    `
+      )
+      .eq('parent_id', parent_id);
+    if (error) {
+      throw error;
+    }
+    return data;
+  }
+
+  async addShopManager(shop_id, person_id) {
+    const { data, error } = await this.supabase.from('shop_manager').insert({
       shop_id,
       person_id,
     }).select(`
@@ -43,7 +177,7 @@ class DatabaseClient {
       )
     ) {
       const { error } = await this.supabase
-        .from('shops_managers')
+        .from('shop_manager')
         .delete()
         .eq('shop_id', shop_id)
         .eq('person_id', person_id);
@@ -57,7 +191,7 @@ class DatabaseClient {
 
   async getManagersOfShop(shop_id) {
     const { data, error } = await this.supabase
-      .from('shops_managers')
+      .from('shop_manager')
       .select(
         `
       *,
@@ -72,9 +206,12 @@ class DatabaseClient {
     return data.map((data) => data.manager);
   }
 
-  async getShopsManagers() {
-    const { data, error } = await this.supabase.from('shops_managers').select(`
-      *
+  async getShopManager() {
+    const { data, error } = await this.supabase.from('shop_manager').select(`
+      *,
+      manager: person_id (
+        *
+      )
     `);
     if (error) {
       throw error;
@@ -83,10 +220,12 @@ class DatabaseClient {
   }
 
   async addEmployeeShop(person_id, shop_event_id) {
-    const { data, error } = await this.supabase.from('employees_shops').insert({
-      person_id,
-      shop_event_id,
-    }).select(`*,
+    const { data, error } = await this.supabase
+      .from('shop_event_employee')
+      .insert({
+        person_id,
+        shop_event_id,
+      }).select(`*,
       person: person_id (
         *
       )`);
@@ -98,7 +237,7 @@ class DatabaseClient {
 
   async updateEmployeeShop(id, employeeShop) {
     const { data, error } = await this.supabase
-      .from('employees_shops')
+      .from('shop_event_employee')
       .update(employeeShop)
       .eq('id', id)
       .select('*');
@@ -110,7 +249,7 @@ class DatabaseClient {
 
   async deleteEmployeeShop(person_id, shop_event_id) {
     const { error } = await this.supabase
-      .from('employees_shops')
+      .from('shop_event_employee')
       .delete()
       .eq('person_id', person_id)
       .eq('shop_event_id', shop_event_id);
@@ -122,7 +261,7 @@ class DatabaseClient {
 
   async getEmployeeShopById(id) {
     const { data, error } = await this.supabase
-      .from('employees_shops')
+      .from('shop_event_employee')
       .select('*')
       .eq('id', id);
     if (error) {
@@ -133,7 +272,7 @@ class DatabaseClient {
 
   async getEmployeesOfShop(shop_event_id) {
     const { data, error } = await this.supabase
-      .from('employees_shops')
+      .from('shop_event_employee')
       .select(
         `
       *,
@@ -151,7 +290,7 @@ class DatabaseClient {
 
   async getEmployeeShopByIds(person_id, shop_event_id) {
     const { data, error } = await this.supabase
-      .from('employees_shops')
+      .from('shop_event_employee')
       .select('*')
       .eq('person_id', person_id)
       .eq('shop_event_id', shop_event_id);
@@ -162,11 +301,13 @@ class DatabaseClient {
   }
 
   async getEmployeeShops() {
-    const { data, error } = await this.supabase.from('employees_shops').select(
-      `
+    const { data, error } = await this.supabase
+      .from('shop_event_employee')
+      .select(
+        `
       *
     `
-    );
+      );
     if (error) {
       throw error;
     }
@@ -175,7 +316,7 @@ class DatabaseClient {
 
   async addShopEvent(shop_id, event_id) {
     const { data, error } = await this.supabase
-      .from('shops_events')
+      .from('shop_event')
       .insert({
         shop_id,
         event_id,
@@ -189,7 +330,7 @@ class DatabaseClient {
 
   async updateShopEvent(id, shopEvent) {
     const { data, error } = await this.supabase
-      .from('shops_events')
+      .from('shop_event')
       .update(shopEvent)
       .eq('id', id)
       .select('*');
@@ -206,7 +347,7 @@ class DatabaseClient {
       )
     ) {
       const { error } = await this.supabase
-        .from('shops_events')
+        .from('shop_event')
         .delete()
         .eq('id', id);
       if (error) {
@@ -219,29 +360,90 @@ class DatabaseClient {
 
   async getShopEventById(id) {
     const { data, error } = await this.supabase
-      .from('shops_events')
-      .select('*')
+      .from('shop_event')
+
+      .select(
+        `*,
+        managers: shop_event_manager (
+          managers: person_id (*)
+        ),
+        employees: shop_event_employee (
+          employees: person_id (*)
+        ),
+      timeslots (
+        *,
+        managers: timeslot_manager (
+          managers: person_id (*)
+        ),
+        employees: timeslot_employee (
+          employees: person_id (*)
+        )
+      )`
+      )
       .eq('id', id);
     if (error) {
       throw error;
     }
-    return data[0];
+    if (data[0]) {
+      return {
+        ...data[0],
+        managers: data[0].managers?.map((obj) => obj.managers),
+        employees: data[0].employees?.map((obj) => obj.employees),
+        timeslots: data[0].timeslots.map((timeslot) => {
+          return {
+            ...timeslot,
+            managers: timeslot.managers?.map((obj) => obj.managers),
+            employees: timeslot.employees?.map((obj) => obj.employees),
+          };
+        }),
+      };
+    }
   }
 
   async getShopEventByIds(shop_id, event_id) {
     const { data, error } = await this.supabase
-      .from('shops_events')
-      .select('*')
+      .from('shop_event')
+      .select(
+        `*,
+        managers: shop_event_manager (
+          managers: person_id (*)
+        ),
+        employees: shop_event_employee (
+          employees: person_id (*)
+        ),
+      timeslots (
+        *,
+        managers: timeslot_manager (
+          managers: person_id (*)
+        ),
+        employees: timeslot_employee (
+          employees: person_id (*)
+        )
+      )`
+      )
       .eq('shop_id', shop_id)
       .eq('event_id', event_id);
     if (error) {
       throw error;
     }
-    return data[0];
+    if (data[0]) {
+      return {
+        ...data[0],
+        managers: data[0].managers?.map((obj) => obj.managers),
+        employees: data[0].employees?.map((obj) => obj.employees),
+        timeslots: data[0].timeslots.map((timeslot) => {
+          return {
+            ...timeslot,
+            managers: timeslot.managers?.map((obj) => obj.managers),
+            employees: timeslot.employees?.map((obj) => obj.employees),
+          };
+        }),
+      };
+    }
   }
 
   async getShopEvents() {
-    const { data, error } = await this.supabase.from('shops_events').select(
+    const { data, error } = await this.supabase.from('shop_event').select(
       `
       *
     `
@@ -306,7 +508,12 @@ class DatabaseClient {
       .from('shops')
       .select(
         `
-      *
+      *,
+      shop_manager (
+        manager: person_id (
+          *
+        )
+      )
     `
       )
       .is('parent_id', null);

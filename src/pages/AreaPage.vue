@@ -1,7 +1,11 @@
 <script setup>
-import { reactive, onMounted, computed } from 'vue';
+import { reactive, onMounted, computed, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import { databaseClient } from '../services/db.service';
+import TimeslotComponent from '../components/TimeslotComponent.vue';
+import { getCurrentUser } from '../services/auth.service';
+
+const user = getCurrentUser();
 
 const route = useRoute();
 
@@ -13,6 +17,7 @@ const state = reactive({
   subShops: [],
   showSubShopDialog: false,
   showAddEmployeeDialog: false,
+  showHaupthelferDialog: false,
   subShopsColumns: [
     {
       name: 'name',
@@ -166,6 +171,14 @@ const state = reactive({
   employees: [],
   selectedEmployees: [],
   haupthelfer: [],
+  searchTerm: '',
+  employeeWasAssignedLastYear: false,
+  showAddTimeslotDialog: false,
+  editedTimeslot: {
+    date: '2024/02/01',
+    start_time: '09:30',
+    end_time: '13:30',
+  },
 });
 
 onMounted(async () => {
@@ -187,11 +200,6 @@ onMounted(async () => {
 
     if (shopEvent) {
       state.allShopEvents.push(shopEvent);
-      const employees = await databaseClient.getEmployeesOfShop(shopEvent.id);
-      state.allEmployees.push({
-        shopEventId: shopEvent.id,
-        employees: employees,
-      });
     }
   }
 
@@ -200,17 +208,40 @@ onMounted(async () => {
   state.loading = false;
 });
 
+state.hasEditPermission = computed(() => {
+  const isOwner = state.haupthelfer.find((hautph) => hautph.user_id === user.id)
+    ? true
+    : false;
+
+  const isAdmin = user.user_metadata?.role === 'Admin';
+  if (isAdmin | isOwner) return true;
+  return false;
+});
+
 state.selectedShopEvent = computed(() => {
   return state.allShopEvents.find(
     (shopEvent) => state.selectedEvent.id === shopEvent.event_id
   );
 });
 
-state.employees = computed(() => {
-  return state.allEmployees.find(
-    (obj) => state.selectedShopEvent.id === obj.shopEventId
-  ).employees;
+state.allTimeslotDates = computed(() => {
+  return [
+    ...new Set(
+      state.selectedShopEvent.timeslots?.map((timeslot) => timeslot.date)
+    ),
+  ];
 });
+
+function getDate() {
+  const date = new Date();
+  return `${pad(date.getDate())}-${pad(date.getMonth() + 1)}`;
+}
+
+function pad(num, size = 2) {
+  num = num.toString();
+  while (num.length < size) num = '0' + num;
+  return num;
+}
 
 async function onAddRow() {
   if (state.editedId > -1) {
@@ -226,6 +257,16 @@ function onUpdateSubShop(item) {
   state.showSubShopDialog = true;
   state.editedItem = Object.assign({}, item);
   state.editedId = item.id;
+}
+
+async function refreshShops() {
+  const shopEvent = await databaseClient.getShopEventById(
+    state.selectedShopEvent.id
+  );
+  const index = state.allShopEvents.findIndex(
+    (shopEvent) => shopEvent.id === state.selectedShopEvent.id
+  );
+  Object.assign(state.allShopEvents[index], shopEvent);
 }
 
 async function updateSubShop(id, shop) {
@@ -257,11 +298,20 @@ async function deleteSubShop(id) {
 }
 
 function close() {
+  state.searchTerm = '';
   state.loading = false;
-  state.show_dialog = false;
   state.editedItem = {};
+  state.selectedEmployees = [];
+  state.showHaupthelferDialog = false;
   state.showSubShopDialog = false;
   state.showAddEmployeeDialog = false;
+  state.employeeWasAssignedLastYear = false;
+  state.showAddTimeslotDialog = false;
+  state.editedTimeslot = {
+    date: '2024/02/01',
+    start_time: '09:30',
+    end_time: '13:30',
+  };
 }
 
 async function addShopEvent() {
@@ -289,17 +339,18 @@ async function addEmployees() {
         employee.id,
         state.selectedShopEvent.id
       );
-      state.employees.push(data.person);
+      state.selectedShopEvent.employees.push(data.person);
     } catch (error) {
       console.error(error);
     }
   }
+  close();
 }
 
 async function addHaupthelfer() {
   for (const employee of state.selectedEmployees) {
     try {
-      const data = await databaseClient.addShopsManagers(
+      const data = await databaseClient.addShopManager(
         state.selectedShop.id,
         employee.id
       );
@@ -308,6 +359,7 @@ async function addHaupthelfer() {
       console.error(error);
     }
   }
+  close();
 }
 
 async function deleteHaupthelfer(person_id) {
@@ -330,13 +382,24 @@ async function deleteEmployee(person_id) {
       person_id,
       state.selectedShopEvent.id
     );
-    state.employees.splice(
-      state.employees.findIndex((employee) => employee.id === person_id),
+    state.selectedShopEvent.employees.splice(
+      state.selectedShopEvent.employees.findIndex(
+        (employee) => employee.id === person_id
+      ),
       1
     );
   } catch (error) {
     console.error(error);
   }
+}
+
+async function addTimeslot() {
+  const data = await databaseClient.addTimeslot({
+    ...state.editedTimeslot,
+    shop_event_id: state.selectedShopEvent.id,
+  });
+  state.selectedShopEvent.timeslots.push(data);
+  close();
 }
 </script>
 
@@ -385,7 +448,7 @@ async function deleteEmployee(person_id) {
             hide-pagination
           >
             <template v-slot:top>
-              <div class="text-h6 q-pb-md">Haupthelfer</div>
+              <div class="text-h6 q-pb-md">Verantwortliche</div>
             </template>
             <template v-slot:body="props">
               <q-tr :props="props">
@@ -398,6 +461,7 @@ async function deleteEmployee(person_id) {
                 <q-td key="actions" :props="props">
                   <div class="q-pa-md q-gutter-sm">
                     <q-btn
+                      v-if="state.hasEditPermission"
                       color="red"
                       icon="fa-solid fa-trash"
                       size="sm"
@@ -411,11 +475,12 @@ async function deleteEmployee(person_id) {
           <div class="col">
             <q-card-section class="row">
               <q-btn
+                v-if="state.hasEditPermission"
                 flat
                 outline
                 dense
                 color="primary"
-                label="Haupthelfer hinzufügen"
+                label="Verantwortlichen hinzufügen"
                 @click="state.showHaupthelferDialog = true"
               ></q-btn>
             </q-card-section>
@@ -423,7 +488,7 @@ async function deleteEmployee(person_id) {
         </q-card>
       </div>
 
-      <div class="q-pb-md">
+      <!-- <div class="q-pb-md">
         <q-card dense flat bordered style="max-width: 100%">
           <q-table
             v-if="state.subShops.length > 0"
@@ -461,12 +526,14 @@ async function deleteEmployee(person_id) {
                       "
                     ></q-btn>
                     <q-btn
+                      v-if="state.hasEditPermission"
                       color="orange"
                       icon="fa-solid fa-edit"
                       size="sm"
                       @click="onUpdateSubShop(props.row)"
                     ></q-btn>
                     <q-btn
+                      v-if="state.hasEditPermission"
                       color="red"
                       icon="fa-solid fa-trash"
                       size="sm"
@@ -486,6 +553,7 @@ async function deleteEmployee(person_id) {
           <div class="col">
             <q-card-section class="row">
               <q-btn
+                v-if="state.hasEditPermission"
                 flat
                 outline
                 dense
@@ -496,11 +564,11 @@ async function deleteEmployee(person_id) {
             </q-card-section>
           </div>
         </q-card>
-      </div>
+      </div> -->
     </div>
     <div v-else>
       <div class="row q-py-md">
-        <div class="col q-pl-sm">
+        <div class="col-4 q-pr-md">
           <q-select
             outlined
             v-model="state.selectedEvent"
@@ -509,18 +577,43 @@ async function deleteEmployee(person_id) {
             class="bg-white"
           />
         </div>
-        <div class="col q-pl-sm">
-          <q-tabs v-model="state.active_job_tab" narrow-indicator>
-            <q-tab name="default" label="Standard" />
-            <q-tab name="detail" label="Detail" />
-          </q-tabs>
-        </div>
+        <q-btn
+          v-if="!state.selectedShopEvent"
+          flat
+          outlined
+          dense
+          color="col-7 q-px-xl primary bg-white"
+          label="Werkstatt zuweisen"
+          @click="addShopEvent"
+        ></q-btn>
+        <q-tabs
+          v-else
+          class="col-4 q-px-xl"
+          v-model="state.active_job_tab"
+          narrow-indicator
+        >
+          <q-tab name="default" label="Standard" />
+          <q-tab name="detail" label="Zeitslots" />
+        </q-tabs>
+        <q-btn
+          v-if="
+            state.selectedShopEvent &&
+            state.active_job_tab === 'detail' &&
+            state.hasEditPermission
+          "
+          class="col-3 bg-white"
+          outline
+          dense
+          color="primary"
+          label="Zeitslot hinzufügen"
+          @click="state.showAddTimeslotDialog = true"
+        />
       </div>
       <div v-if="state.selectedShopEvent">
         <div v-if="state.active_job_tab === 'default'">
           <q-table
             title="Mitarbeiter"
-            :rows="state.employees"
+            :rows="state.selectedShopEvent.employees"
             :columns="state.employeesColumns"
             row-key="id"
             class="styled-table"
@@ -550,6 +643,7 @@ async function deleteEmployee(person_id) {
                 <q-td key="actions" :props="props">
                   <div class="q-pa-md q-gutter-sm">
                     <q-btn
+                      v-if="state.hasEditPermission"
                       color="red"
                       icon="fa-solid fa-trash"
                       size="sm"
@@ -575,23 +669,43 @@ async function deleteEmployee(person_id) {
             </div>
           </q-card>
         </div>
-      </div>
-      <div v-else>
-        <div v-if="state.active_job_tab === 'default'">
-          <q-card dense flat bordered style="max-width: 100%">
-            <div class="col">
-              <q-card-section class="row">
-                <q-btn
-                  flat
-                  outline
-                  dense
-                  color="primary"
-                  label="Werkstatt der Veranstaltung zuweisen"
-                  @click="addShopEvent"
-                ></q-btn>
-              </q-card-section>
+        <div v-else>
+          <div class="q-pa-md row">
+            <div
+              class="col-4 q-pa-md"
+              v-bind:model-value="state.selectedEvent"
+              v-for="date in state.allTimeslotDates"
+              :key="date"
+            >
+              <q-card>
+                <q-card-section class="bg-primary text-black">
+                  <div class="text-h5" style="text-align: center">
+                    {{ date }}
+                  </div>
+                  <div class="text-subtitle1" style="text-align: center">
+                    ({{
+                      new Date(date).toLocaleString('de', { weekday: 'short' })
+                    }})
+                  </div>
+                </q-card-section>
+                <div
+                  v-bind:model-value="state.selectedShopEvent"
+                  v-for="timeslot in state.selectedShopEvent?.timeslots"
+                  :key="timeslot.id"
+                >
+                  <div v-if="date === timeslot.date">
+                    <TimeslotComponent
+                      :timeslot="timeslot"
+                      :employees="state.persons"
+                      :employee-columns="state.employeesColumns"
+                      :hasEditPermission="state.hasEditPermission"
+                      @update-shop="refreshShops"
+                    ></TimeslotComponent>
+                  </div>
+                </div>
+              </q-card>
             </div>
-          </q-card>
+          </div>
         </div>
       </div>
     </div>
@@ -634,13 +748,41 @@ async function deleteEmployee(person_id) {
           <q-table
             flat
             bordered
-            title="Mitarbeiter hinzufügen"
+            title="Mitarbeiter"
             :rows="state.persons"
             :columns="state.personColumns"
             row-key="id"
             selection="multiple"
             v-model:selected="state.selectedEmployees"
-          />
+            :filter="state.searchTerm"
+            :loading="state.loading"
+          >
+            <template v-slot:top>
+              <div style="width: 100%" class="row">
+                <div class="col-4">
+                  <q-input
+                    dense
+                    debounce="400"
+                    color="primary"
+                    v-model="state.searchTerm"
+                    placeholder="Suche"
+                  >
+                    <template v-slot:before>
+                      <q-icon name="search" />
+                    </template>
+                  </q-input>
+                </div>
+                <div class="q-pl-md col-5">
+                  <q-toggle
+                    size="md"
+                    v-model="state.employeeWasAssignedLastYear"
+                    val="md"
+                    label="Mitarbeiter war letztes Jahr eingeteilt"
+                  />
+                </div>
+              </div>
+            </template>
+          </q-table>
         </q-card-section>
 
         <q-card-actions align="center">
@@ -666,7 +808,35 @@ async function deleteEmployee(person_id) {
             row-key="id"
             selection="multiple"
             v-model:selected="state.selectedEmployees"
-          />
+            :filter="state.searchTerm"
+            :loading="state.loading"
+          >
+            <template v-slot:top>
+              <div style="width: 100%" class="row">
+                <div class="col-4">
+                  <q-input
+                    dense
+                    debounce="400"
+                    color="primary"
+                    v-model="state.searchTerm"
+                    placeholder="Suche"
+                  >
+                    <template v-slot:before>
+                      <q-icon name="search" />
+                    </template>
+                  </q-input>
+                </div>
+                <div class="q-pl-md col-5">
+                  <q-toggle
+                    size="md"
+                    v-model="state.employeeWasAssignedLastYear"
+                    val="md"
+                    label="Mitarbeiter war letztes Jahr eingeteilt"
+                  />
+                </div>
+              </div>
+            </template>
+          </q-table>
         </q-card-section>
 
         <q-card-actions align="center">
@@ -676,6 +846,119 @@ async function deleteEmployee(person_id) {
             color="primary"
             v-close-popup
             @click="addHaupthelfer"
+          ></q-btn>
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+    <q-dialog v-model="state.showAddTimeslotDialog" @hide="close">
+      <q-card class="q-pa-md q-gutter-md">
+        <q-card-section>
+          <div class="text-h6">Zeitslot</div>
+        </q-card-section>
+        <q-card-section>
+          <div style="max-width: 90%">
+            <q-input
+              label="Datum"
+              filled
+              v-model="state.editedTimeslot.date"
+              mask="date"
+              :rules="['date']"
+              :language="de"
+            >
+              <template v-slot:append>
+                <q-icon name="event" class="cursor-pointer">
+                  <q-popup-proxy
+                    cover
+                    transition-show="scale"
+                    transition-hide="scale"
+                  >
+                    <q-date v-model="state.editedTimeslot.date">
+                      <div class="row items-center justify-end">
+                        <q-btn
+                          v-close-popup
+                          label="Close"
+                          color="primary"
+                          flat
+                        />
+                      </div>
+                    </q-date>
+                  </q-popup-proxy>
+                </q-icon>
+              </template>
+            </q-input>
+            <q-input
+              label="Beginn"
+              filled
+              v-model="state.editedTimeslot.start_time"
+              mask="time"
+              :rules="['time']"
+            >
+              <template v-slot:append>
+                <q-icon name="access_time" class="cursor-pointer">
+                  <q-popup-proxy
+                    cover
+                    transition-show="scale"
+                    transition-hide="scale"
+                  >
+                    <q-time
+                      v-model="state.editedTimeslot.start_time"
+                      with-seconds
+                      format24h
+                    >
+                      <div class="row items-center justify-end">
+                        <q-btn
+                          v-close-popup
+                          label="Close"
+                          color="primary"
+                          flat
+                        />
+                      </div>
+                    </q-time>
+                  </q-popup-proxy>
+                </q-icon>
+              </template>
+            </q-input>
+            <q-input
+              label="Ende"
+              filled
+              v-model="state.editedTimeslot.end_time"
+              mask="time"
+              :rules="['time']"
+            >
+              <template v-slot:append>
+                <q-icon name="access_time" class="cursor-pointer">
+                  <q-popup-proxy
+                    cover
+                    transition-show="scale"
+                    transition-hide="scale"
+                  >
+                    <q-time
+                      v-model="state.editedTimeslot.end_time"
+                      with-seconds
+                      format24h
+                    >
+                      <div class="row items-center justify-end">
+                        <q-btn
+                          v-close-popup
+                          label="Close"
+                          color="primary"
+                          flat
+                        />
+                      </div>
+                    </q-time>
+                  </q-popup-proxy>
+                </q-icon>
+              </template>
+            </q-input>
+          </div>
+        </q-card-section>
+        <q-card-actions align="center">
+          <q-btn label="Schließen" size="l" @click="close"></q-btn>
+          <q-btn
+            label="OK"
+            color="primary"
+            v-close-popup
+            @click="addTimeslot"
           ></q-btn>
         </q-card-actions>
       </q-card>

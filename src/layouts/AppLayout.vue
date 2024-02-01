@@ -1,37 +1,38 @@
-<script>
-import { ref } from 'vue';
+<script setup>
+import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { logout } from '../services/auth.service';
 import { getCurrentUser } from '../services/auth.service';
+import { databaseClient } from '../services/db.service';
 
-export default {
-  name: 'MyLayout',
+const user = ref(getCurrentUser());
+const isAdmin = ref(user.value?.user_metadata?.role === 'Admin');
 
-  setup() {
-    const user = ref(getCurrentUser());
-    const isAdmin = ref(user.value?.user_metadata?.role === 'Admin');
-    const isHaupthelfer = ref(
-      user.value?.user_metadata?.role === 'Haupthelfer'
-    );
-    const router = useRouter();
+const isHaupthelfer = ref(user.value?.user_metadata?.role === 'Haupthelfer');
+const router = useRouter();
 
-    const leftDrawerOpen = ref(false);
+const leftDrawerOpen = ref(false);
 
-    function toggleLeftDrawer() {
-      leftDrawerOpen.value = !leftDrawerOpen.value;
-    }
+function toggleLeftDrawer() {
+  leftDrawerOpen.value = !leftDrawerOpen.value;
+}
 
-    return {
-      isAdmin,
-      isHaupthelfer,
-      user,
-      router,
-      leftDrawerOpen,
-      toggleLeftDrawer,
-      logout,
-    };
-  },
-};
+const shopId = ref(null);
+
+async function getShopManager() {
+  const shopManager = await databaseClient.getShopManager();
+  const shopManagerOfUser = shopManager.find(
+    (shopManager) => shopManager.manager.user_id === user.value.id
+  );
+  if (shopManagerOfUser) {
+    return shopManagerOfUser.shop_id;
+  }
+  return null;
+}
+
+onMounted(async () => {
+  shopId.value = await getShopManager();
+});
 </script>
 
 <template>
@@ -61,7 +62,10 @@ export default {
                       <q-item-section>Mein Account</q-item-section>
                     </q-item>
                     <q-separator />
-                    <q-item clickable>
+                    <q-item
+                      clickable
+                      @click="this.$router.push('/shops/' + shopId)"
+                    >
                       <q-item-section>Meine Werkstatt</q-item-section>
                     </q-item>
                   </q-list>
@@ -137,11 +141,7 @@ export default {
             <q-item-label caption>Übersicht aller Veranstaltungen</q-item-label>
           </q-item-section>
         </q-item>
-        <q-item
-          v-if="isAdmin || isHaupthelfer"
-          clickable
-          @click="this.$router.push('/shops')"
-        >
+        <q-item v-if="isAdmin" clickable @click="this.$router.push('/shops')">
           <q-item-section avatar>
             <q-icon name="work" />
           </q-item-section>
@@ -150,11 +150,7 @@ export default {
             <q-item-label caption>Übersicht der Werkstätten</q-item-label>
           </q-item-section>
         </q-item>
-        <q-item
-          v-if="isAdmin || isHaupthelfer"
-          clickable
-          @click="this.$router.push('/')"
-        >
+        <q-item v-if="isAdmin" clickable @click="this.$router.push('/reports')">
           <q-item-section avatar>
             <q-icon name="book" />
           </q-item-section>

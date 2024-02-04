@@ -147,7 +147,16 @@ onMounted(async () => {
                   icon="fa-solid fa-eye"
                   size="sm"
                   spread="true"
-                  @click="this.$router.push(`/shops/${props.row.id}`)"
+                  @click="
+                    this.$router.push({
+                      path: `/shops/${props.row.id}`,
+                      query: {
+                        active_tab: 'overview',
+                        active_job_tab: 'default',
+                        event: '',
+                      },
+                    })
+                  "
                 ></q-btn>
                 <q-btn
                   color="secondary"

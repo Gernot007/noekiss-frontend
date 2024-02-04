@@ -130,16 +130,16 @@ onMounted(async () => {
         <template v-slot:body="props">
           <q-tr :props="props">
             <q-td key="first_name" :props="props">
-              {{ props.row.first_name }}
+              {{ props.row.user_metadata.first_name }}
             </q-td>
             <q-td key="last_name" :props="props">
-              {{ props.row.last_name }}
+              {{ props.row.user_metadata.last_name }}
             </q-td>
             <q-td key="email" :props="props">
               {{ props.row.email }}
             </q-td>
             <q-td key="role" :props="props">
-              {{ props.row.role }}
+              {{ props.row.user_metadata.role }}
             </q-td>
             <q-td key="created_at" :props="props">
               {{ new Date(props.row.created_at).toLocaleString() }}

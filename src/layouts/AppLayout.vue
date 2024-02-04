@@ -2,13 +2,21 @@
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { logout } from '../services/auth.service';
-import { getCurrentUser } from '../services/auth.service';
+import { useUserStore } from '../stores/user.js';
+
+const userStore = useUserStore();
+const user = userStore.user;
+
+onMounted(async () => {
+  await userStore.getLoggedInUser();
+  shopId.value = await getShopManager();
+});
+
 import { databaseClient } from '../services/db.service';
 
-const user = ref(getCurrentUser());
-const isAdmin = ref(user.value?.user_metadata?.role === 'Admin');
+const isAdmin = ref(user?.role === 'Admin');
 
-const isHaupthelfer = ref(user.value?.user_metadata?.role === 'Haupthelfer');
+const isHaupthelfer = ref(user?.role === 'Haupthelfer');
 const router = useRouter();
 
 const leftDrawerOpen = ref(false);
@@ -22,17 +30,13 @@ const shopId = ref(null);
 async function getShopManager() {
   const shopManager = await databaseClient.getShopManager();
   const shopManagerOfUser = shopManager.find(
-    (shopManager) => shopManager.manager.user_id === user.value.id
+    (shopManager) => shopManager.manager.user_id === user?.id
   );
   if (shopManagerOfUser) {
     return shopManagerOfUser.shop_id;
   }
   return null;
 }
-
-onMounted(async () => {
-  shopId.value = await getShopManager();
-});
 </script>
 
 <template>
@@ -52,7 +56,9 @@ onMounted(async () => {
           <q-btn flat round dense @click="this.$router.push('/')">NÖKISS</q-btn>
         </q-toolbar-title>
         <div class="q-pa-md">
-          <q-btn flat @click="this.$router.push('/admin')">Einstellungen</q-btn>
+          <q-btn v-if="isAdmin" flat @click="this.$router.push('/admin')"
+            >Einstellungen</q-btn
+          >
           <q-btn flat round dense icon="person">
             <q-menu>
               <div class="row no-wrap q-pa-md">
@@ -64,7 +70,18 @@ onMounted(async () => {
                     <q-separator />
                     <q-item
                       clickable
-                      @click="this.$router.push('/shops/' + shopId)"
+                      @click="
+                        shopId
+                          ? this.$router.push({
+                              path: `/shops/` + shopId,
+                              query: {
+                                active_tab: 'overview',
+                                active_job_tab: 'default',
+                                event: '',
+                              },
+                            })
+                          : this.$router.push('/shops/create')
+                      "
                     >
                       <q-item-section>Meine Werkstatt</q-item-section>
                     </q-item>
@@ -81,9 +98,7 @@ onMounted(async () => {
                     <q-item>
                       <q-item-section>
                         {{
-                          user.user_metadata.first_name +
-                          ' ' +
-                          user.user_metadata.last_name
+                          user.first_name + ' ' + user.last_name
                         }}</q-item-section
                       >
                     </q-item>
@@ -109,6 +124,29 @@ onMounted(async () => {
     <q-drawer v-model="leftDrawerOpen" show-if-above class="bg-primary">
       <q-list dark>
         <q-item-label header>Kategorien</q-item-label>
+        <q-item
+          v-if="isAdmin || isHaupthelfer"
+          clickable
+          @click="
+            shopId
+              ? this.$router.push({
+                  path: `/shops/` + shopId,
+                  query: {
+                    active_tab: 'overview',
+                    active_job_tab: 'default',
+                    event: '',
+                  },
+                })
+              : this.$router.push('/shops/create')
+          "
+        >
+          <q-item-section avatar>
+            <q-icon name="work" />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>Meine Werkstatt</q-item-label>
+          </q-item-section>
+        </q-item>
         <q-item v-if="isAdmin" clickable @click="this.$router.push('/users')">
           <q-item-section avatar>
             <q-icon name="person" />
@@ -120,7 +158,7 @@ onMounted(async () => {
         </q-item>
 
         <q-item
-          v-if="isAdmin"
+          v-if="isAdmin || isHaupthelfer"
           clickable
           @click="this.$router.push('/employees')"
         >

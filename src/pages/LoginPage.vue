@@ -70,13 +70,11 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue';
-import { signInWithPassword } from '../services/auth.service';
+import { ref } from 'vue';
 import { useRouter } from 'vue-router';
+import { signInWithPassword } from '../services/auth.service';
 
 const router = useRouter();
-
-const loading = ref(false);
 const email = ref('');
 const password = ref('');
 </script>

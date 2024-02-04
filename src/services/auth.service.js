@@ -1,10 +1,6 @@
 import { supabase } from '../supabase';
 import { databaseClient } from './db.service';
 
-export function getCurrentUser() {
-  return JSON.parse(localStorage.getItem('sb-wzcdkxlwbmrmaeekjsgb-auth-token'))
-    ?.user;
-}
 export async function logout(router) {
   this.loading = true;
   try {
@@ -22,7 +18,7 @@ export async function logout(router) {
 export async function signInWithPassword(email, password, router) {
   this.loading = true;
   try {
-    const { data, error } = await supabase.auth.signInWithPassword({
+    const { error } = await supabase.auth.signInWithPassword({
       email: email,
       password: password,
     });
@@ -55,7 +51,7 @@ export async function signUpNewUser(_data, router) {
       alert('Der Registrierungscode ist ungültig.');
     }
 
-    const { data, error } = await supabase.auth.signUp({
+    const { error } = await supabase.auth.signUp({
       email: _data.email,
       password: _data.password,
       options: {

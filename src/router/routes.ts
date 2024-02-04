@@ -14,6 +14,7 @@ import UsersPage from '../pages/UsersPage.vue';
 import AdminSettingsPage from 'src/pages/AdminSettingsPage.vue';
 import AreaPage from 'src/pages/AreaPage.vue';
 import ReportPage from 'src/pages/ReportPage.vue';
+import ShopCreatePage from 'src/pages/ShopCreatePage.vue';
 
 const routes: RouteRecordRaw[] = [
   {
@@ -59,6 +60,14 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/shops/:id',
     component: ShopPage,
+    meta: {
+      layout: AppLayout,
+      authorize: ['Admin', 'Haupthelfer'],
+    },
+  },
+  {
+    path: '/shops/create',
+    component: ShopCreatePage,
     meta: {
       layout: AppLayout,
       authorize: ['Admin', 'Haupthelfer'],

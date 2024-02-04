@@ -1,13 +1,8 @@
 <script setup>
-import { ref } from 'vue';
-import { getCurrentUser } from '../services/auth.service';
+import { useUserStore } from '../stores/user.js';
 
-const currentUser = getCurrentUser();
-const user = ref({
-  id: currentUser.id,
-  email: currentUser.email,
-  ...currentUser.user_metadata,
-});
+const userStore = useUserStore();
+const user = userStore.user;
 </script>
 
 <template>

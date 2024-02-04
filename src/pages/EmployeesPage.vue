@@ -1,10 +1,11 @@
 <script setup>
 import { onMounted, reactive, ref } from 'vue';
 import { databaseClient } from '../services/db.service';
-import { getCurrentUser } from '../services/auth.service';
+import { useUserStore } from '../stores/user.js';
 
-const user = getCurrentUser();
-const isAdmin = ref(user.user_metadata?.role === 'Admin');
+const userStore = useUserStore();
+const user = userStore.user;
+const isAdmin = ref(user?.role === 'Admin');
 const state = reactive({
   show_dialog: false,
   editedId: -1,
@@ -270,7 +271,7 @@ onMounted(async () => {
             >
               <q-select
                 type="gender"
-                :options="['male', 'female']"
+                :options="['maennlich', 'weiblich']"
                 v-model="props.row.gender"
                 dense
                 autofocus
@@ -386,7 +387,7 @@ onMounted(async () => {
           ></q-input>
           <q-select
             v-model="state.editedItem.gender"
-            :options="['male', 'female']"
+            :options="['maennlich', 'weiblich']"
             label="Geschlecht"
           ></q-select>
           <q-input

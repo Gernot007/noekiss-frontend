@@ -6,8 +6,9 @@ import {
   createWebHistory,
 } from 'vue-router';
 
+import { useUserStore } from '../stores/user.js';
 import routes from './routes';
-import { getCurrentUser } from '../services/auth.service';
+
 /*
  * If not building with SSR mode, you can
  * directly export the Router instantiation;
@@ -18,6 +19,8 @@ import { getCurrentUser } from '../services/auth.service';
  */
 
 export default route(function (/* { store, ssrContext } */) {
+  const userStore = useUserStore();
+
   const createHistory = process.env.SERVER
     ? createMemoryHistory
     : process.env.VUE_ROUTER_MODE === 'history'
@@ -27,7 +30,6 @@ export default route(function (/* { store, ssrContext } */) {
   const Router = createRouter({
     scrollBehavior: () => ({ left: 0, top: 0 }),
     routes,
-
     // Leave this as is and make changes in quasar.conf.js instead!
     // quasar.conf.js -> build -> vueRouterMode
     // quasar.conf.js -> build -> publicPath
@@ -37,7 +39,10 @@ export default route(function (/* { store, ssrContext } */) {
   Router.beforeEach(async (to, from, next) => {
     // redirect to login page if not logged in and trying to access a restricted page
     const { authorize } = to.meta as any;
-    const currentUser = getCurrentUser();
+    from.meta.isAdmin = false;
+
+    await userStore.getLoggedInUser();
+    const currentUser = userStore.user;
 
     if (authorize) {
       if (!currentUser) {
@@ -46,10 +51,7 @@ export default route(function (/* { store, ssrContext } */) {
       }
 
       // check if route is restricted by role
-      if (
-        authorize?.length &&
-        !authorize.includes(currentUser?.user_metadata?.role)
-      ) {
+      if (authorize?.length && !authorize.includes(currentUser?.role)) {
         // role not authorised so redirect to home page
         return next({ path: '/' });
       }

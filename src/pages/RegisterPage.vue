@@ -116,9 +116,9 @@
 </template>
 
 <script setup>
-import { reactive, ref } from 'vue';
-import { signUpNewUser } from '../services/auth.service';
+import { reactive } from 'vue';
 import { useRouter } from 'vue-router';
+import { signUpNewUser } from '../services/auth.service';
 
 const router = useRouter();
 

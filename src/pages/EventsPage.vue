@@ -1,7 +1,6 @@
 <script setup>
 import { onMounted, reactive } from 'vue';
 import { databaseClient } from '../services/db.service';
-import { date } from 'quasar';
 
 const state = reactive({
   events: [],

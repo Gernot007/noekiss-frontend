@@ -38,7 +38,7 @@ class DatabaseClient {
   }
 
   async removeEmployeeFromTimeslot(timeslot_id, person_id) {
-    const { data, error } = await this.supabase
+    const { error } = await this.supabase
       .from('timeslot_employee')
       .delete()
       .eq('timeslot_id', timeslot_id)
@@ -64,7 +64,7 @@ class DatabaseClient {
   }
 
   async removeManagerFromTimeslot(timeslot_id, person_id) {
-    const { data, error } = await this.supabase
+    const { error } = await this.supabase
       .from('timeslot_manager')
       .delete()
       .eq('timeslot_id', timeslot_id)
@@ -444,14 +444,43 @@ class DatabaseClient {
 
   async getShopEvents() {
     const { data, error } = await this.supabase.from('shop_event').select(
-      `
-      *
-    `
+      `*,
+      shop: shop_id (
+        *
+      ),
+      managers: shop_event_manager (
+        managers: person_id (*)
+      ),
+      employees: shop_event_employee (
+        employees: person_id (*)
+      ),
+    timeslots (
+      *,
+      managers: timeslot_manager (
+        managers: person_id (*)
+      ),
+      employees: timeslot_employee (
+        employees: person_id (*)
+      )
+    )`
     );
     if (error) {
       throw error;
     }
-    return data;
+    return data.map((rec) => {
+      return {
+        ...rec,
+        managers: rec.managers?.map((obj) => obj.managers),
+        employees: rec.employees?.map((obj) => obj.employees),
+        timeslots: rec.timeslots.map((timeslot) => {
+          return {
+            ...timeslot,
+            managers: timeslot.managers?.map((obj) => obj.managers),
+            employees: timeslot.employees?.map((obj) => obj.employees),
+          };
+        }),
+      };
+    });
   }
 
   async addShop(shop) {
@@ -575,7 +604,7 @@ class DatabaseClient {
     if (error) {
       throw error;
     }
-    return data;
+    return data[0];
   }
 
   async getEvents() {
@@ -640,7 +669,18 @@ class DatabaseClient {
     if (error) {
       throw error;
     }
-    return data;
+    return data[0];
+  }
+
+  async getPersonByUserId(user_id) {
+    const { data, error } = await this.supabase
+      .from('persons')
+      .select('*')
+      .eq('user_id', user_id);
+    if (error) {
+      throw error;
+    }
+    return data[0];
   }
 
   async getPersons() {
@@ -698,7 +738,7 @@ class DatabaseClient {
       id: user.id,
       email: data.user.email,
       created_at: data.user.created_at,
-      ...data.user.user_metadata,
+      ...data.user,
     };
   }
 
@@ -711,7 +751,7 @@ class DatabaseClient {
       id: user.id,
       email: data.user.email,
       created_at: data.user.created_at,
-      ...data.user.user_metadata,
+      ...data.user,
     };
   }
 
@@ -728,9 +768,14 @@ class DatabaseClient {
         id: user.id,
         email: user.email,
         created_at: user.created_at,
-        ...user.user_metadata,
+        ...user,
       };
     });
+  }
+
+  async getLoggedInUser() {
+    const { data } = await supabase.auth.getUser();
+    return data.user;
   }
 }
 

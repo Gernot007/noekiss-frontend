@@ -1,12 +1,12 @@
 <script setup>
-import { reactive, onMounted, computed, ref } from 'vue';
+import { computed, onMounted, reactive } from 'vue';
 import { useRoute } from 'vue-router';
-import { databaseClient } from '../services/db.service';
 import TimeslotComponent from '../components/TimeslotComponent.vue';
-import { getCurrentUser } from '../services/auth.service';
+import { databaseClient } from '../services/db.service';
+import { useUserStore } from '../stores/user.js';
 
-const user = getCurrentUser();
-
+const userStore = useUserStore();
+const user = userStore.user;
 const route = useRoute();
 
 const state = reactive({
@@ -213,7 +213,7 @@ state.hasEditPermission = computed(() => {
     ? true
     : false;
 
-  const isAdmin = user.user_metadata?.role === 'Admin';
+  const isAdmin = user?.role === 'Admin';
   if (isAdmin | isOwner) return true;
   return false;
 });
@@ -232,17 +232,6 @@ state.allTimeslotDates = computed(() => {
   ];
 });
 
-function getDate() {
-  const date = new Date();
-  return `${pad(date.getDate())}-${pad(date.getMonth() + 1)}`;
-}
-
-function pad(num, size = 2) {
-  num = num.toString();
-  while (num.length < size) num = '0' + num;
-  return num;
-}
-
 async function onAddRow() {
   if (state.editedId > -1) {
     await updateSubShop(state.editedId, state.editedItem);
@@ -250,13 +239,6 @@ async function onAddRow() {
     await createSubShop(state.editedItem);
   }
   close();
-}
-
-function onUpdateSubShop(item) {
-  state.loading = true;
-  state.showSubShopDialog = true;
-  state.editedItem = Object.assign({}, item);
-  state.editedId = item.id;
 }
 
 async function refreshShops() {
@@ -285,16 +267,6 @@ async function createSubShop(shop) {
     parent_id: state.selectedShop.id,
   });
   state.subShops.push(shopData);
-}
-
-async function deleteSubShop(id) {
-  const shopDeleted = await databaseClient.deleteShop(id);
-  if (shopDeleted) {
-    state.subShops.splice(
-      state.subShops.findIndex((shop) => shop.id === id),
-      1
-    );
-  }
 }
 
 function close() {

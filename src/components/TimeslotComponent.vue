@@ -1,5 +1,5 @@
 <script setup>
-import { reactive, defineProps, ref, defineEmits } from 'vue';
+import { defineEmits, defineProps, reactive } from 'vue';
 import { databaseClient } from '../services/db.service';
 
 const props = defineProps([
